@@ -1,0 +1,308 @@
+import express, { Request, Response } from 'express';
+import basicAuth from 'express-basic-auth';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+import { join, resolve } from 'path';
+import { readFileSync } from 'fs';
+import { User } from '../models/User';
+import { LeaderboardService } from '../services/LeaderboardService';
+
+// Store leaderboard service instance (will be set by index.ts)
+let leaderboardServiceInstance: LeaderboardService | null = null;
+
+export function startDashboard(leaderboardService?: LeaderboardService): void {
+  // Store the leaderboard service instance for use in API endpoints
+  if (leaderboardService) {
+    leaderboardServiceInstance = leaderboardService;
+    console.log('[Dashboard] LeaderboardService instance registered for manual updates');
+  } else {
+    console.log('[Dashboard] LeaderboardService not provided - manual updates will be unavailable');
+  }
+  const app = express();
+  const PORT = process.env.PORT || 3000;
+
+  // Middleware Order (CRITICAL for security):
+  // 1. CORS (configured with origin restriction)
+  app.use(cors({
+    origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',
+    credentials: true,
+    optionsSuccessStatus: 200
+  }));
+  
+  // 2. Rate limiting (protect against brute force and DoS)
+  // General API rate limiter
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Stricter rate limiter for write operations (POST requests)
+  const writeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 50, // Limit to 50 write operations per 15 minutes
+    message: 'Too many write requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Apply general rate limiting to all API routes
+  app.use('/api/', apiLimiter);
+  
+  // 3. JSON body parser (must be before auth)
+  app.use(express.json({ limit: '10mb' })); // Limit JSON payload size
+
+  // 4. Basic Auth configuration
+  const webUser = process.env.WEB_USER || 'admin';
+  const webPass = process.env.WEB_PASS;
+
+  // Security: Require password to be set, no weak defaults
+  if (!webPass || webPass === 'password') {
+    console.error('[Dashboard] ⚠️ SECURITY WARNING: WEB_PASS is not set or using default value!');
+    console.error('[Dashboard] Please set WEB_PASS in your .env file with a strong password.');
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('WEB_PASS must be set in production environment');
+    }
+  }
+
+  // Verification log - confirm auth loaded correctly (never log password)
+  console.log('🔒 Basic Auth enabled for user:', webUser);
+
+  const authMiddleware = basicAuth({
+    users: { [webUser]: webPass || 'password' }, // Fallback only for dev mode
+    challenge: true, // Important: triggers browser login popup
+    realm: 'Admin Panel',
+    unauthorizedResponse: (req: Request) => {
+      return 'Unauthorized. Please provide valid credentials.';
+    },
+  });
+
+  // CRITICAL: Apply auth middleware BEFORE static files and API routes
+  // This ensures ALL requests (including static files) require authentication
+  app.use(authMiddleware);
+
+  // 5. Serve static files from public directory (NOW PROTECTED by auth above)
+  // Dynamic path: works in both dev (ts-node: src/dashboard/) and prod (node: dist/dashboard/)
+  const publicPath = join(__dirname, 'public');
+  console.log(`[Dashboard] Serving static files from: ${publicPath}`);
+  
+  // Explicitly serve index.html with no caching to ensure updates are always reflected
+  app.get('/', (req: Request, res: Response) => {
+    try {
+      // SECURITY: Path traversal protection - ensure path is within public directory
+      const indexPath = join(publicPath, 'index.html');
+      const resolvedPath = resolve(indexPath);
+      const resolvedPublicPath = resolve(publicPath);
+      
+      if (!resolvedPath.startsWith(resolvedPublicPath)) {
+        console.error('[Dashboard] SECURITY: Path traversal attempt detected');
+        return res.status(403).send('Forbidden: Invalid path');
+      }
+
+      const html = readFileSync(indexPath, 'utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('X-Content-Type-Options', 'nosniff'); // Security header
+      res.setHeader('X-Frame-Options', 'DENY'); // Prevent clickjacking
+      res.send(html);
+    } catch (error) {
+      console.error('[Dashboard] Error serving index.html:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+  
+  // Serve other static files (CSS, JS, images, etc.)
+  app.use(express.static(publicPath, {
+    setHeaders: (res, path) => {
+      if (path.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
+  }));
+
+  // API Endpoint: Get leaderboard (top 50 users) - Read-only
+  app.get('/api/leaderboard', async (req: Request, res: Response) => {
+    try {
+      const topUsers = await User.find({})
+        .sort({ honorPoints: -1 })
+        .limit(50)
+        .select('userId username honorPoints dailyCheckinStreak')
+        .lean();
+
+      // Transform data for frontend
+      const leaderboard = topUsers.map((user, index) => ({
+        rank: index + 1,
+        userId: user.userId,
+        username: user.username,
+        honorPoints: user.honorPoints || 0,
+        dailyStreak: user.dailyCheckinStreak || 0,
+      }));
+
+      res.json({
+        success: true,
+        data: leaderboard,
+        lastUpdated: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('[Dashboard] Error fetching leaderboard:', error);
+      const isDevelopment = process.env.NODE_ENV !== 'production';
+      res.status(500).json({
+        success: false,
+        error: isDevelopment 
+          ? (error instanceof Error ? error.message : 'Failed to fetch leaderboard data')
+          : 'Failed to fetch leaderboard data',
+      });
+    }
+  });
+
+  // API Endpoint: Update user's honor points (Admin only)
+  // SECURITY: Apply stricter rate limiting to write operations
+  app.post('/api/user/:id/points', writeLimiter, async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.id;
+      const { points } = req.body;
+
+      // SECURITY: Validate userId format (Discord snowflake: 17-19 digits)
+      if (!userId || !/^\d{17,19}$/.test(userId)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid user ID format. Must be a valid Discord snowflake (17-19 digits).',
+        });
+      }
+
+      // SECURITY: Validate and sanitize points value
+      if (typeof points !== 'number' || !Number.isFinite(points) || points < 0 || points > Number.MAX_SAFE_INTEGER) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid points value. Must be a non-negative number within safe integer range.',
+        });
+      }
+
+      const user = await User.findOneAndUpdate(
+        { userId },
+        { honorPoints: Math.floor(points) }, // Ensure integer
+        { new: true, upsert: false }
+      );
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found',
+        });
+      }
+
+      // Trigger leaderboard update after points change
+      if (leaderboardServiceInstance) {
+        console.log('[Dashboard] Points updated, triggering leaderboard refresh...');
+        leaderboardServiceInstance.triggerUpdate().catch((error) => {
+          console.error('[Dashboard] Error triggering leaderboard update:', error);
+          // Don't fail the request if leaderboard update fails
+        });
+      } else {
+        console.warn('[Dashboard] LeaderboardService not available, skipping leaderboard update');
+      }
+
+      res.json({
+        success: true,
+        message: 'User points updated successfully',
+        data: {
+          userId: user.userId,
+          username: user.username,
+          honorPoints: user.honorPoints,
+        },
+      });
+    } catch (error) {
+      console.error('[Dashboard] Error updating user points:', error);
+      const isDevelopment = process.env.NODE_ENV !== 'production';
+      res.status(500).json({
+        success: false,
+        error: isDevelopment
+          ? (error instanceof Error ? error.message : 'Failed to update user points')
+          : 'Failed to update user points',
+      });
+    }
+  });
+
+  // API Endpoint: Reset user's streak (Admin only)
+  // SECURITY: Apply stricter rate limiting to write operations
+  app.post('/api/user/:id/reset-streak', writeLimiter, async (req: Request, res: Response) => {
+    try {
+      const userId = req.params.id;
+
+      // SECURITY: Validate userId format (Discord snowflake: 17-19 digits)
+      if (!userId || !/^\d{17,19}$/.test(userId)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid user ID format. Must be a valid Discord snowflake (17-19 digits).',
+        });
+      }
+
+      const user = await User.findOneAndUpdate(
+        { userId },
+        {
+          dailyCheckinStreak: 0,
+          lastCheckinDate: new Date(0),
+          lastDailyReset: new Date(0),
+        },
+        { new: true, upsert: false }
+      );
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found',
+        });
+      }
+
+      // Trigger leaderboard update after streak reset (user might change rank)
+      if (leaderboardServiceInstance) {
+        console.log('[Dashboard] Streak reset, triggering leaderboard refresh...');
+        leaderboardServiceInstance.triggerUpdate().catch((error) => {
+          console.error('[Dashboard] Error triggering leaderboard update:', error);
+          // Don't fail the request if leaderboard update fails
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'User streak reset successfully',
+        data: {
+          userId: user.userId,
+          username: user.username,
+          dailyCheckinStreak: user.dailyCheckinStreak,
+        },
+      });
+    } catch (error) {
+      console.error('[Dashboard] Error resetting user streak:', error);
+      const isDevelopment = process.env.NODE_ENV !== 'production';
+      res.status(500).json({
+        success: false,
+        error: isDevelopment
+          ? (error instanceof Error ? error.message : 'Failed to reset user streak')
+          : 'Failed to reset user streak',
+      });
+    }
+  });
+
+  // Health check endpoint (protected)
+  app.get('/api/health', (req: Request, res: Response) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Start server
+  app.listen(PORT, () => {
+    console.log(`[Dashboard] Admin Panel running on http://localhost:${PORT}`);
+    // SECURITY: Never log passwords in production
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[Dashboard] Username: ${webUser}`);
+    } else {
+      console.log(`[Dashboard] Basic Auth enabled for user: ${webUser}`);
+    }
+  });
+}
