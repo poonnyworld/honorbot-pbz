@@ -241,39 +241,39 @@ This section provides visual examples and terminal outputs to help you understan
 
 #### `/daily` Command Example
 
-![Daily Command - First Check-in](./demo-usage-examples/daily-command-first.png)
+<img src="./demo-usage-examples/daily-command-first.png" alt="Daily Command - First Check-in" width="800">
 
-![Daily Command - Streak Bonus](./demo-usage-examples/daily-command-streak.png)
+<img src="./demo-usage-examples/daily-command-streak.png" alt="Daily Command - Streak Bonus" width="800">
 
 #### `/profile` Command Example
 
-![Profile Command](./demo-usage-examples/profile-command.png)
+<img src="./demo-usage-examples/profile-command.png" alt="Profile Command" width="800">
 
 #### `/leaderboard` Command Example
 
-![Leaderboard Command](./demo-usage-examples/leaderboard-command.png)
+<img src="./demo-usage-examples/leaderboard-command.png" alt="Leaderboard Command" width="800">
 
 #### `/help` Command Example
 
-![Help Command](./demo-usage-examples/help-command.png)
+<img src="./demo-usage-examples/help-command.png" alt="Help Command" width="800">
 
 ### Real-time Leaderboard Channel
 
-![Leaderboard Channel](./demo-usage-examples/leaderboard-channel.png)
+<img src="./demo-usage-examples/leaderboard-channel.png" alt="Leaderboard Channel" width="800">
 
 ### Admin Web Dashboard
 
 #### Dashboard Overview
 
-![Admin Dashboard Overview](./demo-usage-examples/admin-dashboard-overview.png)
+<img src="./demo-usage-examples/admin-dashboard-overview.png" alt="Admin Dashboard Overview" width="1000">
 
 #### User Management Modal
 
-![Edit User Modal](./demo-usage-examples/admin-edit-modal.png)
+<img src="./demo-usage-examples/admin-edit-modal.png" alt="Edit User Modal" width="800">
 
 #### Dashboard Search Functionality
 
-![Dashboard Search](./demo-usage-examples/admin-dashboard-search.png)
+<img src="./demo-usage-examples/admin-dashboard-search.png" alt="Dashboard Search" width="1000">
 
 ### Usage Workflow Examples
 
@@ -295,8 +295,8 @@ This section provides visual examples and terminal outputs to help you understan
 #### Example 3: Admin Backup Workflow
 
 <div align="center">
-  <img src="./demo-usage-examples/backup-export.png" alt="Backup Export" width="48%">
-  <img src="./demo-usage-examples/backup-import.png" alt="Backup Import" width="48%">
+  <img src="./demo-usage-examples/backup-export.png" alt="Backup Export" width="600">
+  <img src="./demo-usage-examples/backup-import.png" alt="Backup Import" width="600">
 </div>
 
 ---
