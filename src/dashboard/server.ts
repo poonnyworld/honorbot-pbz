@@ -6,6 +6,7 @@ import { join, resolve } from 'path';
 import { readFileSync } from 'fs';
 import { User } from '../models/User';
 import { LeaderboardService } from '../services/LeaderboardService';
+import mongoose from 'mongoose';
 
 // Store leaderboard service instance (will be set by index.ts)
 let leaderboardServiceInstance: LeaderboardService | null = null;
@@ -23,8 +24,41 @@ export function startDashboard(leaderboardService?: LeaderboardService): void {
 
   // Middleware Order (CRITICAL for security):
   // 1. CORS (configured with origin restriction)
+  // Allow multiple origins or use function for dynamic origin matching
+  const allowedOrigins = process.env.ALLOWED_ORIGIN 
+    ? process.env.ALLOWED_ORIGIN.split(',').map(o => o.trim())
+    : ['http://localhost:3000'];
+  
   app.use(cors({
-    origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, Postman, or same-origin requests)
+      if (!origin) {
+        console.log('[Dashboard] CORS: Allowing request with no origin (same-origin or tool request)');
+        return callback(null, true);
+      }
+      
+      console.log(`[Dashboard] CORS: Checking origin: ${origin}`);
+      
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        console.log(`[Dashboard] CORS: Origin ${origin} is in allowed list`);
+        callback(null, true);
+      } else {
+        // Allow localhost and IP addresses for development (or if ALLOWED_ORIGIN not strictly set)
+        const isLocalhost = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1');
+        const isIPAddress = /^http:\/\/\d+\.\d+\.\d+\.\d+(:\d+)?$/.test(origin);
+        
+        if (isLocalhost || isIPAddress) {
+          // Log a warning but allow it (useful for development and IP-based deployments)
+          console.warn(`[Dashboard] CORS: Allowing IP/localhost origin: ${origin} (not in ALLOWED_ORIGIN list)`);
+          callback(null, true);
+        } else {
+          console.error(`[Dashboard] CORS: Blocked request from origin: ${origin}`);
+          console.error(`[Dashboard] CORS: Allowed origins: ${allowedOrigins.join(', ')}`);
+          callback(new Error(`Not allowed by CORS. Origin ${origin} not in allowed list.`));
+        }
+      }
+    },
     credentials: true,
     optionsSuccessStatus: 200
   }));
@@ -83,57 +117,28 @@ export function startDashboard(leaderboardService?: LeaderboardService): void {
   // This ensures ALL requests (including static files) require authentication
   app.use(authMiddleware);
 
-  // 5. Serve static files from public directory (NOW PROTECTED by auth above)
-  // Dynamic path: works in both dev (ts-node: src/dashboard/) and prod (node: dist/dashboard/)
-  const publicPath = join(__dirname, 'public');
-  console.log(`[Dashboard] Serving static files from: ${publicPath}`);
-  
-  // Explicitly serve index.html with no caching to ensure updates are always reflected
-  app.get('/', (req: Request, res: Response) => {
-    try {
-      // SECURITY: Path traversal protection - ensure path is within public directory
-      const indexPath = join(publicPath, 'index.html');
-      const resolvedPath = resolve(indexPath);
-      const resolvedPublicPath = resolve(publicPath);
-      
-      if (!resolvedPath.startsWith(resolvedPublicPath)) {
-        console.error('[Dashboard] SECURITY: Path traversal attempt detected');
-        return res.status(403).send('Forbidden: Invalid path');
-      }
-
-      const html = readFileSync(indexPath, 'utf-8');
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('Content-Type', 'text/html');
-      res.setHeader('X-Content-Type-Options', 'nosniff'); // Security header
-      res.setHeader('X-Frame-Options', 'DENY'); // Prevent clickjacking
-      res.send(html);
-    } catch (error) {
-      console.error('[Dashboard] Error serving index.html:', error);
-      res.status(500).send('Internal Server Error');
-    }
-  });
-  
-  // Serve other static files (CSS, JS, images, etc.)
-  app.use(express.static(publicPath, {
-    setHeaders: (res, path) => {
-      if (path.endsWith('.html')) {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-      }
-    }
-  }));
-
+  // 5. Define API routes FIRST (before static files) to ensure they're matched correctly
   // API Endpoint: Get leaderboard (top 50 users) - Read-only
   app.get('/api/leaderboard', async (req: Request, res: Response) => {
     try {
+      console.log('[Dashboard] GET /api/leaderboard - Request received');
+      
+      // Check MongoDB connection
+      if (mongoose.connection.readyState !== 1) {
+        console.error('[Dashboard] MongoDB not connected. Connection state:', mongoose.connection.readyState);
+        return res.status(503).json({
+          success: false,
+          error: 'Database connection not available. Please check MongoDB connection.',
+        });
+      }
+      
       const topUsers = await User.find({})
         .sort({ honorPoints: -1 })
         .limit(50)
         .select('userId username honorPoints dailyCheckinStreak')
         .lean();
+
+      console.log(`[Dashboard] Found ${topUsers.length} users in database`);
 
       // Transform data for frontend
       const leaderboard = topUsers.map((user, index) => ({
@@ -144,6 +149,8 @@ export function startDashboard(leaderboardService?: LeaderboardService): void {
         dailyStreak: user.dailyCheckinStreak || 0,
       }));
 
+      console.log(`[Dashboard] Returning leaderboard with ${leaderboard.length} entries`);
+
       res.json({
         success: true,
         data: leaderboard,
@@ -151,6 +158,10 @@ export function startDashboard(leaderboardService?: LeaderboardService): void {
       });
     } catch (error) {
       console.error('[Dashboard] Error fetching leaderboard:', error);
+      if (error instanceof Error) {
+        console.error('[Dashboard] Error message:', error.message);
+        console.error('[Dashboard] Error stack:', error.stack);
+      }
       const isDevelopment = process.env.NODE_ENV !== 'production';
       res.status(500).json({
         success: false,
@@ -294,6 +305,48 @@ export function startDashboard(leaderboardService?: LeaderboardService): void {
   app.get('/api/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
+
+  // 6. Serve static files from public directory (AFTER API routes)
+  // Dynamic path: works in both dev (ts-node: src/dashboard/) and prod (node: dist/dashboard/)
+  const publicPath = join(__dirname, 'public');
+  console.log(`[Dashboard] Serving static files from: ${publicPath}`);
+  
+  // Explicitly serve index.html with no caching to ensure updates are always reflected
+  app.get('/', (req: Request, res: Response) => {
+    try {
+      // SECURITY: Path traversal protection - ensure path is within public directory
+      const indexPath = join(publicPath, 'index.html');
+      const resolvedPath = resolve(indexPath);
+      const resolvedPublicPath = resolve(publicPath);
+      
+      if (!resolvedPath.startsWith(resolvedPublicPath)) {
+        console.error('[Dashboard] SECURITY: Path traversal attempt detected');
+        return res.status(403).send('Forbidden: Invalid path');
+      }
+
+      const html = readFileSync(indexPath, 'utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('X-Content-Type-Options', 'nosniff'); // Security header
+      res.setHeader('X-Frame-Options', 'DENY'); // Prevent clickjacking
+      res.send(html);
+    } catch (error) {
+      console.error('[Dashboard] Error serving index.html:', error);
+      res.status(500).send('Internal Server Error');
+    }
+  });
+  
+  // Serve other static files (CSS, JS, images, etc.)
+  app.use(express.static(publicPath, {
+    setHeaders: (res, path) => {
+      // Apply no-cache headers to all static files to prevent browser caching issues
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }));
 
   // Start server
   app.listen(PORT, () => {

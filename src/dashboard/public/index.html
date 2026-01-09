@@ -238,11 +238,60 @@
             leaderboard.classList.add('hidden');
 
             try {
-                const response = await fetch(API_URL);
+                // Create a timeout promise
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Request timeout - server took too long to respond')), 10000); // 10 second timeout
+                });
                 
-                if (response.status === 401) {
-                    // Authentication required - browser will prompt
-                    return;
+                // Race between fetch and timeout
+                const response = await Promise.race([
+                    fetch(API_URL, {
+                        credentials: 'include' // Important for Basic Auth with CORS
+                    }),
+                    timeoutPromise
+                ]) as Response;
+                
+                // Check if response is OK
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Authentication required
+                        console.error('Authentication required (401)');
+                        error.classList.remove('hidden');
+                        const errorMsg = error.querySelector('p');
+                        if (errorMsg) {
+                            errorMsg.textContent = 'Authentication failed. Please refresh the page and log in again.';
+                        }
+                        loading.classList.add('hidden');
+                        return;
+                    }
+                    
+                    // Try to get error message from response
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorText = await response.text();
+                        // Try to parse as JSON
+                        try {
+                            const errorJson = JSON.parse(errorText);
+                            errorMessage = errorJson.error || errorMessage;
+                        } catch {
+                            // If not JSON, check if it's HTML
+                            if (errorText && !errorText.trim().startsWith('<')) {
+                                errorMessage = errorText;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Could not read error response:', e);
+                    }
+                    
+                    throw new Error(errorMessage);
+                }
+                
+                // Check content type before parsing JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Expected JSON but got:', contentType, text.substring(0, 200));
+                    throw new Error('Invalid response format. Expected JSON but got: ' + (contentType || 'unknown'));
                 }
                 
                 const result = await response.json();
@@ -266,6 +315,11 @@
                 }
             } catch (err) {
                 console.error('Error loading leaderboard:', err);
+                const errorMsg = error.querySelector('p');
+                if (errorMsg) {
+                    const errorText = (err && err.message) ? err.message : (err ? err.toString() : 'Unknown error');
+                    errorMsg.textContent = 'Failed to load leaderboard: ' + errorText + '. Check browser console (F12) for details.';
+                }
                 error.classList.remove('hidden');
             } finally {
                 loading.classList.add('hidden');
