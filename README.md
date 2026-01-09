@@ -241,39 +241,39 @@ This section provides visual examples and terminal outputs to help you understan
 
 #### `/daily` Command Example
 
-<img src="./demo-usage-examples/daily-command-first.png" alt="Daily Command - First Check-in" width="800">
+<img src="./demo-usage-examples/daily-command-first.png" alt="Daily Command - First Check-in" style="max-width: 900px; width: 100%; height: auto;">
 
-<img src="./demo-usage-examples/daily-command-streak.png" alt="Daily Command - Streak Bonus" width="800">
+<img src="./demo-usage-examples/daily-command-streak.png" alt="Daily Command - Streak Bonus" style="max-width: 900px; width: 100%; height: auto;">
 
 #### `/profile` Command Example
 
-<img src="./demo-usage-examples/profile-command.png" alt="Profile Command" width="800">
+<img src="./demo-usage-examples/profile-command.png" alt="Profile Command" style="max-width: 900px; width: 100%; height: auto;">
 
 #### `/leaderboard` Command Example
 
-<img src="./demo-usage-examples/leaderboard-command.png" alt="Leaderboard Command" width="800">
+<img src="./demo-usage-examples/leaderboard-command.png" alt="Leaderboard Command" style="max-width: 900px; width: 100%; height: auto;">
 
 #### `/help` Command Example
 
-<img src="./demo-usage-examples/help-command.png" alt="Help Command" width="800">
+<img src="./demo-usage-examples/help-command.png" alt="Help Command" style="max-width: 900px; width: 100%; height: auto;">
 
 ### Real-time Leaderboard Channel
 
-<img src="./demo-usage-examples/leaderboard-channel.png" alt="Leaderboard Channel" width="800">
+<img src="./demo-usage-examples/leaderboard-channel.png" alt="Leaderboard Channel" style="max-width: 1000px; width: 100%; height: auto;">
 
 ### Admin Web Dashboard
 
 #### Dashboard Overview
 
-<img src="./demo-usage-examples/admin-dashboard-overview.png" alt="Admin Dashboard Overview" width="1000">
+<img src="./demo-usage-examples/admin-dashboard-overview.png" alt="Admin Dashboard Overview" style="max-width: 1000px; width: 100%; height: auto;">
 
 #### User Management Modal
 
-<img src="./demo-usage-examples/admin-edit-modal.png" alt="Edit User Modal" width="800">
+<img src="./demo-usage-examples/admin-edit-modal.png" alt="Edit User Modal" style="max-width: 900px; width: 100%; height: auto;">
 
 #### Dashboard Search Functionality
 
-<img src="./demo-usage-examples/admin-dashboard-search.png" alt="Dashboard Search" width="1000">
+<img src="./demo-usage-examples/admin-dashboard-search.png" alt="Dashboard Search" style="max-width: 900px; width: 100%; height: auto;">
 
 ### Usage Workflow Examples
 
@@ -295,8 +295,8 @@ This section provides visual examples and terminal outputs to help you understan
 #### Example 3: Admin Backup Workflow
 
 <div align="center">
-  <img src="./demo-usage-examples/backup-export.png" alt="Backup Export" width="600">
-  <img src="./demo-usage-examples/backup-import.png" alt="Backup Import" width="600">
+  <img src="./demo-usage-examples/backup-export.png" alt="Backup Export" style="max-width: 900px; width: 48%; height: auto; display: inline-block; margin: 0 1%;">
+  <img src="./demo-usage-examples/backup-import.png" alt="Backup Import" style="max-width: 900px; width: 48%; height: auto; display: inline-block; margin: 0 1%;">
 </div>
 
 ---
