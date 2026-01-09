@@ -15,7 +15,7 @@ A Discord.js v14 bot for managing an honor points system with real-time leaderbo
 
 - **Message Points System** - Earn 1-5 random honor points per message (60-second cooldown, daily limit: 100 points)
 - **Real-time Leaderboard** - Auto-updates every 3 minutes in a designated channel
-- **Daily Streak System** - Optional streak multiplier for daily check-ins (configurable via feature flag)
+- **Daily Streak System** - Streak multiplier for daily check-ins (enabled by default). Consecutive daily check-ins increase your streak bonus up to 2x multiplier!
 
 ### 👑 Admin Commands
 
@@ -73,7 +73,7 @@ A Discord.js v14 bot for managing an honor points system with real-time leaderbo
    WEB_PASS=your_secure_password
 
    # Feature Flags
-   ENABLE_STREAK=false
+   ENABLE_STREAK=true
 
    # Message Points System
    DAILY_MESSAGE_POINTS_LIMIT=100
@@ -176,23 +176,28 @@ honorbot-pbz/
 
 ### Environment Variables
 
-| Variable                 | Description                                     | Required |
-| ------------------------ | ----------------------------------------------- | -------- |
-| `DISCORD_TOKEN`          | Discord bot token                               | ✅ Yes   |
-| `CLIENT_ID`              | Discord application client ID                   | ✅ Yes   |
-| `GUILD_ID`               | Discord server (guild) ID                       | ✅ Yes   |
-| `MONGO_URI`              | MongoDB connection string                       | ✅ Yes   |
-| `LEADERBOARD_CHANNEL_ID` | Channel ID for leaderboard updates              | ✅ Yes   |
-| `PORT`                   | Web dashboard port (default: 3000)              | ❌ No    |
-| `WEB_USER`               | Admin panel username (default: admin)           | ❌ No    |
-| `WEB_PASS`               | Admin panel password                            | ❌ No    |
-| `ENABLE_STREAK`          | Enable daily streak multiplier (default: false) | ❌ No    |
-| `DAILY_MESSAGE_POINTS_LIMIT` | Daily limit for message points (default: 100) | ❌ No    |
-| `ALLOWED_ORIGIN`         | CORS allowed origin for dashboard (default: http://localhost:3000) | ❌ No    |
+| Variable                     | Description                                                               | Required |
+| ---------------------------- | ------------------------------------------------------------------------- | -------- |
+| `DISCORD_TOKEN`              | Discord bot token                                                         | ✅ Yes   |
+| `CLIENT_ID`                  | Discord application client ID                                             | ✅ Yes   |
+| `GUILD_ID`                   | Discord server (guild) ID                                                 | ✅ Yes   |
+| `MONGO_URI`                  | MongoDB connection string                                                 | ✅ Yes   |
+| `LEADERBOARD_CHANNEL_ID`     | Channel ID for leaderboard updates                                        | ✅ Yes   |
+| `PORT`                       | Web dashboard port (default: 3000)                                        | ❌ No    |
+| `WEB_USER`                   | Admin panel username (default: admin)                                     | ❌ No    |
+| `WEB_PASS`                   | Admin panel password                                                      | ❌ No    |
+| `ENABLE_STREAK`              | Enable daily streak multiplier (default: true, set to 'false' to disable) | ❌ No    |
+| `DAILY_MESSAGE_POINTS_LIMIT` | Daily limit for message points (default: 100)                             | ❌ No    |
+| `ALLOWED_ORIGIN`             | CORS allowed origin for dashboard (default: http://localhost:3000)        | ❌ No    |
 
 ### Feature Flags
 
-- **`ENABLE_STREAK`** - When set to `true`, enables the streak multiplier system for daily check-ins. Users who check in consecutively receive bonus points up to 2x multiplier.
+- **`ENABLE_STREAK`** - When set to `true` (default), enables the streak multiplier system for daily check-ins. Users who check in consecutively receive bonus points with increasing multipliers:
+  - Day 1: 100 points (1x multiplier)
+  - Day 2: 110 points (1.1x multiplier)
+  - Day 3: 120 points (1.2x multiplier)
+  - ... up to Day 10+: 200 points (2x multiplier, maximum)
+  - Missing a day resets the streak to Day 1
 
 ## Usage
 

@@ -13,8 +13,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
-    // Feature Flag: Read ENABLE_STREAK from environment
-    const enableStreak = process.env.ENABLE_STREAK?.toLowerCase() === 'true';
+    // Feature Flag: Read ENABLE_STREAK from environment (defaults to true if not set)
+    const enableStreak = process.env.ENABLE_STREAK === undefined || process.env.ENABLE_STREAK?.toLowerCase() === 'true';
 
     // Fetch or create user from DB
     let user = await User.findOne({ userId: interaction.user.id });
