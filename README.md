@@ -1,6 +1,6 @@
 # HonorBot PBZ
 
-<div align="center">
+<div align="center"></div>
 
 **A feature-rich Discord bot for managing an honor points economy system with real-time leaderboards, daily check-ins, and an admin dashboard**
 
@@ -241,203 +241,65 @@ This section provides visual examples and terminal outputs to help you understan
 
 #### `/daily` Command Example
 
-When a user runs `/daily`, they'll see an embed showing their reward:
+![Daily Command - First Check-in](./demo-usage-examples/daily-command-first.png)
 
-**First-time Daily Check-in:**
-
-- **Points Gained:** 100 ⚔️
-- **Base Points:** 100
-- **Streak Multiplier:** 100% (1 day)
-- **Current Streak:** 1 day 🔥
-- **Total Honor Points:** 100 🏆
-
-**With Streak Bonus (Day 5):**
-
-- **Points Gained:** 140 ⚔️
-- **Base Points:** 100
-- **Streak Multiplier:** 140% (5 days)
-- **Current Streak:** 5 days 🔥
-- **Total Honor Points:** 650 🏆
-
-<!-- Insert Discord /daily Command Screenshot Here -->
-<!-- Format: ![Daily Command Screenshot](images/daily-command.png) -->
+![Daily Command - Streak Bonus](./demo-usage-examples/daily-command-streak.png)
 
 #### `/profile` Command Example
 
-The profile command shows a comprehensive user overview:
-
-```
-🪪 Wanderer Identity
-[User Avatar]
-
-Honor Points: 1,250
-Daily Streak: 7 days
-Global Rank: #15
-Join Date: January 15, 2025
-```
-
-<!-- Insert Discord /profile Command Screenshot Here -->
-<!-- Format: ![Profile Command Screenshot](images/profile-command.png) -->
+![Profile Command](./demo-usage-examples/profile-command.png)
 
 #### `/leaderboard` Command Example
 
-Users can privately view the top 10 rankings:
+![Leaderboard Command](./demo-usage-examples/leaderboard-command.png)
 
-```
-📜 Jianghu Rankings (Top 10)
+#### `/help` Command Example
 
-🥇 1. @User1 - 5,250 Honor
-🥈 2. @User2 - 4,890 Honor
-🥉 3. @User3 - 3,120 Honor
-   4. @User4 - 2,850 Honor
-   5. @User5 - 2,100 Honor
-   ...
-```
-
-<!-- Insert Discord /leaderboard Command Screenshot Here -->
-<!-- Format: ![Leaderboard Command Screenshot](images/leaderboard-command.png) -->
+![Help Command](./demo-usage-examples/help-command.png)
 
 ### Real-time Leaderboard Channel
 
-The bot automatically posts and updates a leaderboard in your designated channel every 3 minutes:
-
-<!-- Insert Leaderboard Channel Screenshot Here -->
-<!-- Format: ![Leaderboard Channel Screenshot](images/leaderboard-channel.png) -->
-
-**Note:** Replace the above placeholder with a screenshot showing:
-
-- The bot's leaderboard embed in a Discord channel
-- Top 10 users with rankings and honor points
-- Medal emojis for top 3 positions
-- "Last Updated" timestamp in the footer
+![Leaderboard Channel](./demo-usage-examples/leaderboard-channel.png)
 
 ### Admin Web Dashboard
 
 #### Dashboard Overview
 
-The admin dashboard provides a comprehensive interface for managing users:
-
-<!-- Insert Admin Dashboard Screenshot Here -->
-<!-- Format: ![Admin Dashboard Screenshot](images/admin-dashboard.png) -->
-
-**Screenshot should show:**
-
-- Dark Wuxia-themed UI with red/gold accents
-- Leaderboard table with top 50 users
-- Columns: Rank, Avatar, Username, Honor Points, Streak, Actions
-- Special styling for top 3 users
-- Search bar for finding users
+![Admin Dashboard Overview](./demo-usage-examples/admin-dashboard-overview.png)
 
 #### User Management Modal
 
-When clicking "Edit" on a user, a modal appears:
+![Edit User Modal](./demo-usage-examples/admin-edit-modal.png)
 
-<!-- Insert Edit User Modal Screenshot Here -->
-<!-- Format: ![Edit User Modal Screenshot](images/edit-user-modal.png) -->
+#### Dashboard Search Functionality
 
-**Screenshot should show:**
-
-- Modal overlay with user information
-- Input field for editing honor points
-- "Update Points" and "Reset Streak" buttons
+![Dashboard Search](./demo-usage-examples/admin-dashboard-search.png)
 
 ### Terminal Output Examples
 
 #### Bot Startup Logs
 
-When the bot starts successfully, you'll see:
-
-```bash
-$ npm start
-
-Bot is starting...
-[ConnectDB] Attempting to connect to MongoDB...
-[ConnectDB] ✓ Connected to MongoDB successfully
-Logged in as HonorBot PBZ#1234!
-Bot is ready! Use "npm run deploy" to register slash commands.
-[LeaderboardService] Initializing leaderboard service...
-[LeaderboardService] ✓ Channel ID validated: 1234567890123456789
-[LeaderboardService] Starting leaderboard service...
-[LeaderboardService] Scheduling cron job: */3 * * * * (every 3 minutes)
-[LeaderboardService] ✓ Leaderboard service started successfully.
-[Dashboard] Admin Panel running on http://localhost:3000
-[Dashboard] Default credentials: admin / [REDACTED]
-```
-
-<!-- Insert Terminal Startup Screenshot Here -->
-<!-- Format: ![Terminal Startup Screenshot](images/terminal-startup.png) -->
+![Bot Startup Terminal](./demo-usage-examples/terminal-bot-startup.png)
 
 #### Command Deployment Logs
 
-When deploying slash commands:
-
-```bash
-$ npm run deploy
-
-[Deploy] Looking for commands in: /path/to/src/commands
-[Deploy] Found 5 command files: backup.ts, daily.ts, help.ts, leaderboard.ts, profile.ts
-[Deploy] ✓ Loaded command: daily from daily.ts
-[Deploy] ✓ Loaded command: profile from profile.ts
-[Deploy] ✓ Loaded command: leaderboard from leaderboard.ts
-[Deploy] ✓ Loaded command: help from help.ts
-[Deploy] ✓ Loaded command: backup from backup.ts
-[Deploy] Total commands loaded: 5
-[Deploy] Starting to refresh 5 application (/) commands...
-[Deploy] ✓ Successfully reloaded 5 application (/) commands.
-[Deploy] Registered commands: daily, profile, leaderboard, help, backup
-[Deploy] ✓ No duplicate commands found - all commands are unique
-```
-
-<!-- Insert Command Deployment Screenshot Here -->
-<!-- Format: ![Command Deployment Screenshot](images/command-deployment.png) -->
+![Command Deployment Terminal](./demo-usage-examples/terminal-command-deployment.png)
 
 #### Message Points Logging
 
-When users send messages and earn points:
-
-```bash
-[Points] User JohnDoe (123456789012345678) gained 3 points. Daily: 45/100, Total: 523
-[Points] User JaneSmith (987654321098765432) gained 5 points. Daily: 67/100, Total: 892
-[Points] Daily message points reset for JohnDoe
-[Points] User JohnDoe (123456789012345678) gained 4 points. Daily: 4/100, Total: 527
-```
-
-<!-- Insert Message Points Logging Screenshot Here -->
-<!-- Format: ![Message Points Logging Screenshot](images/message-points-logging.png) -->
+![Message Points Logging Terminal](./demo-usage-examples/terminal-message-points.png)
 
 #### Leaderboard Update Logs
 
-Every 3 minutes, the leaderboard service updates:
+![Leaderboard Update Terminal](./demo-usage-examples/terminal-leaderboard-update.png)
 
-```bash
-[LeaderboardService] ⏰ ========== CRON JOB TRIGGERED ==========
-[LeaderboardService] Running Leaderboard Cron...
-[LeaderboardService] Current time: 2025-01-20T10:15:00.000Z
-[LeaderboardService] Calling updateLeaderboard()...
-[LeaderboardService] Attempting to update leaderboard in channel: 1234567890123456789
-[LeaderboardService] ✓ Found existing leaderboard message with ID: 9876543210987654321
-[LeaderboardService] Editing existing message: 9876543210987654321...
-[LeaderboardService] ✓ Leaderboard updated (edited existing message).
-[LeaderboardService] ✓ Cron job completed successfully
-[LeaderboardService] ========== CRON JOB ENDED ==========
-```
+#### Bot Running (Continuous Logs)
 
-<!-- Insert Leaderboard Update Logging Screenshot Here -->
-<!-- Format: ![Leaderboard Update Logging Screenshot](images/leaderboard-update-logging.png) -->
+![Bot Running Terminal](./demo-usage-examples/terminal-bot-running.png)
 
 #### Error Handling Examples
 
-When errors occur, the bot logs them appropriately:
-
-```bash
-[InteractionCreate] Error executing command daily: [Error details]
-[InteractionCreate] Error message: User not found in database
-[LeaderboardService] ❌ Error in scheduled leaderboard update: [Error details]
-[Dashboard] Error fetching leaderboard: [Error details]
-```
-
-<!-- Insert Error Logging Screenshot Here (Optional) -->
-<!-- Format: ![Error Logging Screenshot](images/error-logging.png) -->
+![Error Logging Terminal](./demo-usage-examples/terminal-error-handling.png)
 
 ### Usage Workflow Examples
 
@@ -458,14 +320,9 @@ When errors occur, the bot logs them appropriately:
 
 #### Example 3: Admin Backup Workflow
 
-1. Admin runs `/backup export` in Discord
-2. Bot sends JSON file via DM
-3. Admin downloads backup file
-4. Later, admin runs `/backup import` with the file attached
-5. Bot restores all user data
+![Backup Export](./demo-usage-examples/backup-export.png)
 
-<!-- Insert Backup Workflow Screenshot Here (Optional) -->
-<!-- Format: ![Backup Workflow Screenshot](images/backup-workflow.png) -->
+![Backup Import](./demo-usage-examples/backup-import.png)
 
 ---
 
@@ -671,6 +528,24 @@ Then redeploy with `npm run deploy`.
 
 ```
 honorbot-pbz/
+├── demo-usage-examples/    # Screenshots and demo images (add your images here)
+│   ├── daily-command-first.png
+│   ├── daily-command-streak.png
+│   ├── profile-command.png
+│   ├── leaderboard-command.png
+│   ├── help-command.png
+│   ├── leaderboard-channel.png
+│   ├── admin-dashboard-overview.png
+│   ├── admin-edit-modal.png
+│   ├── admin-dashboard-search.png
+│   ├── terminal-bot-startup.png
+│   ├── terminal-command-deployment.png
+│   ├── terminal-message-points.png
+│   ├── terminal-leaderboard-update.png
+│   ├── terminal-bot-running.png
+│   ├── terminal-error-handling.png
+│   ├── backup-export.png
+│   └── backup-import.png
 ├── src/
 │   ├── commands/              # Discord slash commands
 │   │   ├── backup.ts          # Admin backup/restore commands
