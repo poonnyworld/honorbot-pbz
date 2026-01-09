@@ -275,32 +275,6 @@ This section provides visual examples and terminal outputs to help you understan
 
 ![Dashboard Search](./demo-usage-examples/admin-dashboard-search.png)
 
-### Terminal Output Examples
-
-#### Bot Startup Logs
-
-![Bot Startup Terminal](./demo-usage-examples/terminal-bot-startup.png)
-
-#### Command Deployment Logs
-
-![Command Deployment Terminal](./demo-usage-examples/terminal-command-deployment.png)
-
-#### Message Points Logging
-
-![Message Points Logging Terminal](./demo-usage-examples/terminal-message-points.png)
-
-#### Leaderboard Update Logs
-
-![Leaderboard Update Terminal](./demo-usage-examples/terminal-leaderboard-update.png)
-
-#### Bot Running (Continuous Logs)
-
-![Bot Running Terminal](./demo-usage-examples/terminal-bot-running.png)
-
-#### Error Handling Examples
-
-![Error Logging Terminal](./demo-usage-examples/terminal-error-handling.png)
-
 ### Usage Workflow Examples
 
 #### Example 1: New User Journey
@@ -320,9 +294,10 @@ This section provides visual examples and terminal outputs to help you understan
 
 #### Example 3: Admin Backup Workflow
 
-![Backup Export](./demo-usage-examples/backup-export.png)
-
-![Backup Import](./demo-usage-examples/backup-import.png)
+<div align="center">
+  <img src="./demo-usage-examples/backup-export.png" alt="Backup Export" width="48%">
+  <img src="./demo-usage-examples/backup-import.png" alt="Backup Import" width="48%">
+</div>
 
 ---
 

@@ -265,7 +265,7 @@
                         loading.classList.add('hidden');
                         return;
                     }
-                    
+
                     // Try to get error message from response
                     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
                     try {
@@ -283,10 +283,10 @@
                     } catch (e) {
                         console.error('Could not read error response:', e);
                     }
-                    
+
                     throw new Error(errorMessage);
                 }
-                
+
                 // Check content type before parsing JSON
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
