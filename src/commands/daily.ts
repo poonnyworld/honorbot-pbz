@@ -27,6 +27,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         honorPoints: 0,
         lastMessageDate: new Date(),
         dailyPoints: 0,
+        lastMessagePointsReset: new Date(),
         lastDailyReset: new Date(0), // Set to epoch to allow first daily
         dailyCheckinStreak: 0,
         lastCheckinDate: new Date(0), // Set to epoch

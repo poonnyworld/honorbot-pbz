@@ -3,6 +3,9 @@ import {
   EmbedBuilder,
   ChatInputCommandInteraction,
 } from 'discord.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export const data = new SlashCommandBuilder()
   .setName('help')
@@ -12,6 +15,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
+    // Get daily message points limit from environment (default: 100)
+    const dailyLimit = parseInt(process.env.DAILY_MESSAGE_POINTS_LIMIT || '100', 10);
+
     const embed = new EmbedBuilder()
       .setColor(0x8b0000)
       .setTitle('📖 Honor Points Guide')
@@ -26,9 +32,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         },
         {
           name: '💬 Chat Activity',
-          value: 'Earn **1-5 random honor points** by sending messages!\n' +
-                 '• 60-second cooldown between rewards\n' +
-                 '• Bot messages are ignored',
+          value: `Earn **1-5 random honor points** by sending messages!\n` +
+                 `• 60-second cooldown between rewards\n` +
+                 `• Daily limit: **${dailyLimit} points** per day (resets at midnight UTC)\n` +
+                 `• Bot messages are ignored`,
           inline: false,
         },
         {

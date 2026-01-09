@@ -13,8 +13,8 @@ A Discord.js v14 bot for managing an honor points system with real-time leaderbo
 
 ### ⚡ Automatic Features
 
-- **Message Points System** - Earn 1-5 random honor points per message (60-second cooldown)
-- **Real-time Leaderboard** - Auto-updates every 5 minutes in a designated channel
+- **Message Points System** - Earn 1-5 random honor points per message (60-second cooldown, daily limit: 100 points)
+- **Real-time Leaderboard** - Auto-updates every 3 minutes in a designated channel
 - **Daily Streak System** - Optional streak multiplier for daily check-ins (configurable via feature flag)
 
 ### 👑 Admin Commands
@@ -74,6 +74,12 @@ A Discord.js v14 bot for managing an honor points system with real-time leaderbo
 
    # Feature Flags
    ENABLE_STREAK=false
+
+   # Message Points System
+   DAILY_MESSAGE_POINTS_LIMIT=100
+
+   # CORS Configuration
+   ALLOWED_ORIGIN=http://localhost:3000
    ```
 
 4. **Build the project**
@@ -181,6 +187,8 @@ honorbot-pbz/
 | `WEB_USER`               | Admin panel username (default: admin)           | ❌ No    |
 | `WEB_PASS`               | Admin panel password                            | ❌ No    |
 | `ENABLE_STREAK`          | Enable daily streak multiplier (default: false) | ❌ No    |
+| `DAILY_MESSAGE_POINTS_LIMIT` | Daily limit for message points (default: 100) | ❌ No    |
+| `ALLOWED_ORIGIN`         | CORS allowed origin for dashboard (default: http://localhost:3000) | ❌ No    |
 
 ### Feature Flags
 

@@ -113,6 +113,16 @@ export class BackupService {
             lastMessageDate = new Date();
           }
 
+          let lastMessagePointsReset: Date;
+          try {
+            lastMessagePointsReset = user.lastMessagePointsReset ? new Date(user.lastMessagePointsReset) : new Date();
+            if (isNaN(lastMessagePointsReset.getTime())) {
+              lastMessagePointsReset = new Date();
+            }
+          } catch {
+            lastMessagePointsReset = new Date();
+          }
+
           let lastDailyReset: Date;
           try {
             lastDailyReset = user.lastDailyReset ? new Date(user.lastDailyReset) : new Date(0);
@@ -140,6 +150,7 @@ export class BackupService {
             honorPoints: honorPoints,
             lastMessageDate: lastMessageDate,
             dailyPoints: dailyPoints,
+            lastMessagePointsReset: lastMessagePointsReset,
             lastDailyReset: lastDailyReset,
             dailyCheckinStreak: dailyCheckinStreak,
             lastCheckinDate: lastCheckinDate,

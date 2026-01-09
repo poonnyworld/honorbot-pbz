@@ -5,8 +5,9 @@ export interface IUser extends Document {
   username: string;
   honorPoints: number;
   lastMessageDate: Date;
-  dailyPoints: number;
-  lastDailyReset: Date;
+  dailyPoints: number; // Daily points earned from messages
+  lastMessagePointsReset: Date; // Last time message points were reset (daily)
+  lastDailyReset: Date; // Last time daily check-in was used
   dailyCheckinStreak: number;
   lastCheckinDate: Date;
   createdAt?: Date; // Added by mongoose timestamps
@@ -36,6 +37,10 @@ const UserSchema: Schema = new Schema(
   dailyPoints: {
     type: Number,
     default: 0,
+  },
+  lastMessagePointsReset: {
+    type: Date,
+    default: Date.now,
   },
   lastDailyReset: {
     type: Date,
