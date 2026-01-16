@@ -1,18 +1,24 @@
-import { Events, Interaction, EmbedBuilder, ButtonInteraction } from 'discord.js';
+import { Events, Interaction, ButtonInteraction, EmbedBuilder } from 'discord.js';
 import * as dailyCommand from '../commands/daily';
 import * as profileCommand from '../commands/profile';
 import * as helpCommand from '../commands/help';
 import * as leaderboardCommand from '../commands/leaderboard';
 import * as backupCommand from '../commands/backup';
+import * as resetCommand from '../commands/reset';
+import * as statusCommand from '../commands/status';
 import { User } from '../models/User';
 
 export const name = Events.InteractionCreate;
 
 export async function execute(interaction: Interaction): Promise<void> {
-  // Handle button interactions
+  // Handle button interactions first
   if (interaction.isButton()) {
     if (interaction.customId === 'daily_claim_button') {
       await handleDailyButton(interaction);
+      return;
+    }
+    if (interaction.customId.startsWith('reset_confirm_') || interaction.customId.startsWith('reset_cancel_')) {
+      await resetCommand.handleResetButton(interaction);
       return;
     }
   }
@@ -43,6 +49,12 @@ export async function execute(interaction: Interaction): Promise<void> {
       case 'backup':
         await backupCommand.execute(interaction);
         break;
+      case 'reset':
+        await resetCommand.execute(interaction);
+        break;
+      case 'status':
+        await statusCommand.execute(interaction);
+        break;
       default:
         console.warn(`[InteractionCreate] Unknown command: ${commandName}`);
     }
@@ -52,7 +64,7 @@ export async function execute(interaction: Interaction): Promise<void> {
       console.error(`[InteractionCreate] Error message: ${error.message}`);
       console.error(`[InteractionCreate] Error stack: ${error.stack}`);
     }
-    
+
     try {
       if (interaction.deferred || interaction.replied) {
         await interaction.followUp({
@@ -102,17 +114,27 @@ async function handleDailyButton(interaction: ButtonInteraction): Promise<void> 
     }
 
     const now = new Date();
-    const lastResetDate = new Date(user.lastDailyReset);
-    
-    // Check if already claimed today (compare dates without time)
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const lastReset = new Date(
-      lastResetDate.getFullYear(),
-      lastResetDate.getMonth(),
-      lastResetDate.getDate()
-    );
 
-    if (today.getTime() === lastReset.getTime()) {
+    // Check if already claimed today (compare dates without time, using UTC to avoid timezone issues)
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+    // Handle case where lastDailyReset might be null, invalid, or epoch (new users)
+    let lastResetDate: Date;
+    if (!user.lastDailyReset || user.lastDailyReset.getTime() === 0) {
+      // New user or reset to epoch - allow claim
+      lastResetDate = new Date(0);
+    } else {
+      lastResetDate = new Date(user.lastDailyReset);
+    }
+
+    const lastReset = new Date(Date.UTC(
+      lastResetDate.getUTCFullYear(),
+      lastResetDate.getUTCMonth(),
+      lastResetDate.getUTCDate()
+    ));
+
+    // Only block if lastDailyReset is today (and not epoch)
+    if (user.lastDailyReset && user.lastDailyReset.getTime() !== 0 && today.getTime() === lastReset.getTime()) {
       // Already claimed today, calculate next reset time (tomorrow at midnight)
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -144,8 +166,8 @@ async function handleDailyButton(interaction: ButtonInteraction): Promise<void> 
       .setTitle('🧘 Daily Meditation Complete')
       .setDescription(
         `**${interaction.user.username}**, your cultivation session has ended.\n\n` +
-          `**Honor Points Gained:** ${pointsGained} ⚔️\n\n` +
-          `**Total Honor Points:** ${user.honorPoints} 🏆`
+        `**Honor Points Gained:** ${pointsGained} ⚔️\n\n` +
+        `**Total Honor Points:** ${user.honorPoints} 🏆`
       )
       .setFooter({
         text: 'Return tomorrow to claim your daily reward!',
@@ -155,7 +177,7 @@ async function handleDailyButton(interaction: ButtonInteraction): Promise<void> 
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error('Error processing daily button:', error);
-    
+
     const errorEmbed = new EmbedBuilder()
       .setColor(0xff0000)
       .setTitle('❌ Error')
@@ -165,3 +187,4 @@ async function handleDailyButton(interaction: ButtonInteraction): Promise<void> 
     await interaction.editReply({ embeds: [errorEmbed] });
   }
 }
+

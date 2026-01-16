@@ -1,5 +1,5 @@
 import * as cron from 'node-cron';
-import { Client, TextChannel, EmbedBuilder, Message, Collection, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { Client, TextChannel, EmbedBuilder, Message, Collection, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageComponent } from 'discord.js';
 import { User } from '../models/User';
 
 export class LeaderboardService {
@@ -73,7 +73,7 @@ export class LeaderboardService {
       console.log('[LeaderboardService] ⏰ ========== MONTHLY LEADERBOARD UPDATE ==========');
       console.log('[LeaderboardService] Running Monthly Leaderboard Update...');
       console.log(`[LeaderboardService] Current time: ${new Date().toISOString()}`);
-      
+
       try {
         console.log('[LeaderboardService] Calling updateLeaderboard()...');
         await this.updateLeaderboard(client);
@@ -137,7 +137,7 @@ export class LeaderboardService {
    */
   public async forceUpdate(): Promise<boolean> {
     console.log('[LeaderboardService] 🔧 FORCE UPDATE REQUESTED');
-    
+
     if (!this.client) {
       console.error('[LeaderboardService] ❌ Cannot force update: Client not available');
       return false;
@@ -260,23 +260,23 @@ export class LeaderboardService {
         if (!lastMessage) {
           console.log('[LeaderboardService] Searching through recent messages to find bot\'s last message...');
           console.log('[LeaderboardService] Fetching up to 100 messages...');
-          
+
           let foundBotMessage = false;
           let lastFetchedId: string | undefined;
           const maxIterations = 5; // Search up to 500 messages (5 batches of 100)
-          
+
           for (let i = 0; i < maxIterations && !foundBotMessage; i++) {
             let messages: Collection<string, Message>;
-            
+
             if (lastFetchedId) {
               messages = await textChannel.messages.fetch({ limit: 100, before: lastFetchedId });
             } else {
               messages = await textChannel.messages.fetch({ limit: 100 });
             }
-            
+
             const messageCount = messages.size;
             console.log(`[LeaderboardService] Batch ${i + 1}: Fetched ${messageCount} messages`);
-            
+
             // Find the most recent bot message in this batch
             for (const [id, msg] of messages) {
               if (msg.author.id === client.user?.id) {
@@ -296,14 +296,14 @@ export class LeaderboardService {
                 }
               }
             }
-            
+
             // If we got fewer than 100 messages, we've reached the end
             if (messageCount < 100) {
               console.log(`[LeaderboardService] Reached end of message history (batch ${i + 1})`);
               break;
             }
           }
-          
+
           if (!foundBotMessage) {
             console.log('[LeaderboardService] No bot message found in searched history, will send new message');
             this.lastMessageId = null;
@@ -335,7 +335,7 @@ export class LeaderboardService {
             console.error('[LeaderboardService] Error message:', error.message);
             console.error('[LeaderboardService] Error code:', (error as any).code);
           }
-          
+
           // Check if error is because message was deleted (404 or 10008)
           const errorCode = (error as any).code;
           if (errorCode === 10008 || errorCode === 404) {
@@ -343,7 +343,7 @@ export class LeaderboardService {
             this.lastMessageId = null; // Clear stored ID
             lastMessage = null; // Clear reference so we send a new message
           }
-          
+
           // If editing fails (including deletion), try sending a new message
           if (!lastMessage) {
             try {
@@ -395,13 +395,21 @@ export class LeaderboardService {
   }
 
   /**
-   * Ensure the daily button embed exists in the leaderboard channel
+   * Ensure the daily button embed exists in the daily checking channel
    */
   private async ensureDailyButton(client: Client): Promise<void> {
-    const channelId = process.env.LEADERBOARD_CHANNEL_ID;
+    const channelId = process.env.DAILYCHECKING_CHANNEL_ID;
 
     if (!channelId) {
-      console.warn('[LeaderboardService] LEADERBOARD_CHANNEL_ID not set, skipping daily button setup.');
+      console.warn('[LeaderboardService] DAILYCHECKING_CHANNEL_ID not set, skipping daily button setup.');
+      console.warn('[LeaderboardService] Set DAILYCHECKING_CHANNEL_ID in your .env file to enable the daily button.');
+      return;
+    }
+
+    // Validate channel ID is a valid snowflake
+    if (!/^\d{17,19}$/.test(channelId)) {
+      console.error(`[LeaderboardService] ❌ Invalid DAILYCHECKING_CHANNEL_ID format: "${channelId}"`);
+      console.error('[LeaderboardService] Must be a valid Discord snowflake (17-19 digit number).');
       return;
     }
 
@@ -425,14 +433,15 @@ export class LeaderboardService {
       const permissions = textChannel.permissionsFor(botMember);
 
       if (!permissions || !permissions.has('SendMessages') || !permissions.has('ViewChannel')) {
-        console.error(`[LeaderboardService] ❌ Bot lacks required permissions in channel ${channelId}.`);
+        console.error(`[LeaderboardService] ❌ Bot lacks required permissions in daily checking channel ${channelId}.`);
+        console.error(`[LeaderboardService] Required: SendMessages=${permissions?.has('SendMessages')}, ViewChannel=${permissions?.has('ViewChannel')}`);
         return;
       }
 
       // Create the embed
       const embed = new EmbedBuilder()
         .setColor(0x8b0000)
-        .setTitle('🧘 Daily Meditation Reward')
+        .setTitle('🧘 Daily Checking')
         .setDescription('Click the button below to claim your daily honor points reward!\n\nYou can earn **1-10 random honor points** each day.')
         .setFooter({
           text: 'Claim your reward once per day to continue your cultivation journey!',
@@ -472,15 +481,19 @@ export class LeaderboardService {
       if (!dailyButtonMessage) {
         console.log('[LeaderboardService] Searching for existing daily button message...');
         const messages = await textChannel.messages.fetch({ limit: 50 });
-        
+
         for (const [id, msg] of messages) {
           if (msg.author.id === client.user?.id && msg.components.length > 0) {
             // Check if this message has our button
-            const hasDailyButton = msg.components.some(row => 
-              row.components.some(component => 
-                component.type === 2 && (component as any).customId === 'daily_claim_button'
-              )
-            );
+            const hasDailyButton = msg.components.some(row => {
+              const components = (row as any).components;
+              if (components && Array.isArray(components)) {
+                return components.some((component: any) => {
+                  return component.type === 2 && component.customId === 'daily_claim_button';
+                });
+              }
+              return false;
+            });
             if (hasDailyButton) {
               dailyButtonMessage = msg;
               this.dailyButtonMessageId = id;
@@ -582,7 +595,7 @@ export class LeaderboardService {
       return embed;
     } catch (error) {
       console.error('[LeaderboardService] Error generating embed:', error);
-      
+
       // Return error embed if something goes wrong
       return new EmbedBuilder()
         .setColor(0xff0000)

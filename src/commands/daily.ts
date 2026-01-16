@@ -38,17 +38,27 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     }
 
     const now = new Date();
-    const lastResetDate = new Date(user.lastDailyReset);
-    
-    // Check if already claimed today (compare dates without time)
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const lastReset = new Date(
-      lastResetDate.getFullYear(),
-      lastResetDate.getMonth(),
-      lastResetDate.getDate()
-    );
 
-    if (today.getTime() === lastReset.getTime()) {
+    // Check if already claimed today (compare dates without time, using UTC to avoid timezone issues)
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+    // Handle case where lastDailyReset might be null, invalid, or epoch (new users)
+    let lastResetDate: Date;
+    if (!user.lastDailyReset || user.lastDailyReset.getTime() === 0) {
+      // New user or reset to epoch - allow claim
+      lastResetDate = new Date(0);
+    } else {
+      lastResetDate = new Date(user.lastDailyReset);
+    }
+
+    const lastReset = new Date(Date.UTC(
+      lastResetDate.getUTCFullYear(),
+      lastResetDate.getUTCMonth(),
+      lastResetDate.getUTCDate()
+    ));
+
+    // Only block if lastDailyReset is today (and not epoch)
+    if (user.lastDailyReset && user.lastDailyReset.getTime() !== 0 && today.getTime() === lastReset.getTime()) {
       // Already claimed today, calculate next reset time (tomorrow at midnight)
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -80,8 +90,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setTitle('🧘 Daily Meditation Complete')
       .setDescription(
         `**${interaction.user.username}**, your cultivation session has ended.\n\n` +
-          `**Honor Points Gained:** ${pointsGained} ⚔️\n\n` +
-          `**Total Honor Points:** ${user.honorPoints} 🏆`
+        `**Honor Points Gained:** ${pointsGained} ⚔️\n\n` +
+        `**Total Honor Points:** ${user.honorPoints} 🏆`
       )
       .setFooter({
         text: 'Return tomorrow to claim your daily reward!',
@@ -91,7 +101,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error('Error processing daily command:', error);
-    
+
     const errorEmbed = new EmbedBuilder()
       .setColor(0xff0000)
       .setTitle('❌ Error')

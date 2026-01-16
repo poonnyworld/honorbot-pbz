@@ -35,25 +35,31 @@
 
 ### 🎮 User Commands
 
-- **`/daily`** - Claim daily honor points reward (1-10 random honor points)
-- **`/profile`** - View your honor points, rank, daily streak, and join date
+- **`/daily`** - Claim daily honor points with streak multiplier (100 base points, up to 200 with max streak)
+- **`/profile`** - View your honor points, rank, daily streak, daily message progress, today's message points, and join date
 - **`/leaderboard`** - Check the top 10 users privately (ephemeral response)
 - **`/help`** - View available commands and how to earn honor points
 
 ### ⚡ Automatic Features
 
-- **Message Points System** - Earn 1-5 random honor points per message
+- **Message Points System** - Earn 1-5 random honor points per message (max 5 times/day)
+  - **Reaction Feedback**: The bot uses emoji reactions instead of text replies to keep chat clean
+    - Number emoji (1️⃣-5️⃣) = Points earned from that message
+    - ⏳ = Cooldown active (wait 60 seconds between rewards)
+    - ✅ = Daily limit reached (appears on the 5th message)
+    - No reaction = Daily limit exceeded (no points earned)
   - 60-second cooldown between rewards
-  - Daily limit: 5 rewards per day (not points-based)
-  - Resets at midnight UTC
-- **Monthly Leaderboard** - Auto-updates on the 1st day of every month in a designated channel
+  - Daily limit: 5 messages per day (resets at midnight UTC)
+  - Use `/profile` to view your daily message progress and today's message points
+- **Real-time Leaderboard** - Auto-updates every 3 minutes in a designated channel
   - Shows top 10 users with rankings
   - Medal emojis for top 3 (🥇🥈🥉)
-- **Persistent Daily Button** - Interactive button in the leaderboard channel
-  - Click "Claim Daily" button to claim your daily reward
-  - Same functionality as `/daily` command
-  - Shows ephemeral message if already claimed today
-  - Persists across bot restarts
+- **Daily Streak System** - Streak multiplier for daily check-ins (enabled by default)
+  - Consecutive daily check-ins increase your streak bonus
+  - Day 1: 100 points (1x multiplier)
+  - Day 2: 110 points (1.1x multiplier)
+  - Day 10+: 200 points (2x multiplier, maximum)
+  - Missing a day resets the streak to Day 1
 
 ### 👑 Admin Commands
 
@@ -240,39 +246,77 @@ This section provides visual examples and terminal outputs to help you understan
 
 #### `/daily` Command Example
 
-<img src="./demo-usage-examples/daily-command-first.png" alt="Daily Command - First Check-in" style="max-width: 900px; width: 100%; height: auto;">
+![Daily Command - First Check-in](./demo-usage-examples/daily-command-first.png)
 
-The daily command now awards **1-10 random honor points** (equal probability for each number).
+![Daily Command - Streak Bonus](./demo-usage-examples/daily-command-streak.png)
 
 #### `/profile` Command Example
 
-<img src="./demo-usage-examples/profile-command.png" alt="Profile Command" style="max-width: 900px; width: 100%; height: auto;">
+![Profile Command](./demo-usage-examples/profile-command.png)
 
 #### `/leaderboard` Command Example
 
-<img src="./demo-usage-examples/leaderboard-command.png" alt="Leaderboard Command" style="max-width: 900px; width: 100%; height: auto;">
+![Leaderboard Command](./demo-usage-examples/leaderboard-command.png)
 
 #### `/help` Command Example
 
-<img src="./demo-usage-examples/help-command.png" alt="Help Command" style="max-width: 900px; width: 100%; height: auto;">
+![Help Command](./demo-usage-examples/help-command.png)
 
 ### Real-time Leaderboard Channel
 
-<img src="./demo-usage-examples/leaderboard-channel.png" alt="Leaderboard Channel" style="max-width: 1000px; width: 100%; height: auto;">
+![Leaderboard Channel](./demo-usage-examples/leaderboard-channel.png)
+
+### Daily Reward Button (Persistent View)
+
+If `DAILYCHECKING_CHANNEL_ID` is configured, the bot automatically creates a persistent embed with a "Claim Daily Reward" button in the specified channel. This provides an alternative way for users to claim their daily rewards without using the `/daily` command.
+
+**Features:**
+- Persistent embed that stays in the channel
+- Interactive button for claiming daily rewards
+- Auto-recreates if deleted
+- Updates every 3 minutes (during leaderboard update cycle)
+
+**Setup:** Add `DAILYCHECKING_CHANNEL_ID=<your_channel_id>` to your `.env` file and restart the bot.
 
 ### Admin Web Dashboard
 
 #### Dashboard Overview
 
-<img src="./demo-usage-examples/admin-dashboard-overview.png" alt="Admin Dashboard Overview" style="max-width: 1000px; width: 100%; height: auto;">
+![Admin Dashboard Overview](./demo-usage-examples/admin-dashboard-overview.png)
 
 #### User Management Modal
 
-<img src="./demo-usage-examples/admin-edit-modal.png" alt="Edit User Modal" style="max-width: 900px; width: 100%; height: auto;">
+![Edit User Modal](./demo-usage-examples/admin-edit-modal.png)
 
 #### Dashboard Search Functionality
 
-<img src="./demo-usage-examples/admin-dashboard-search.png" alt="Dashboard Search" style="max-width: 900px; width: 100%; height: auto;">
+![Dashboard Search](./demo-usage-examples/admin-dashboard-search.png)
+
+### Terminal Output Examples
+
+#### Bot Startup Logs
+
+![Bot Startup Terminal](./demo-usage-examples/terminal-bot-startup.png)
+
+#### Command Deployment Logs
+
+![Command Deployment Terminal](./demo-usage-examples/terminal-command-deployment.png)
+
+#### Message Points Logging
+
+![Message Points Logging Terminal](./demo-usage-examples/terminal-message-points.png)
+
+#### Leaderboard Update Logs
+
+![Leaderboard Update Terminal](./demo-usage-examples/terminal-leaderboard-update.png)
+
+#### Bot Running (Continuous Logs)
+
+![Bot Running Terminal](./demo-usage-examples/terminal-bot-running.png)
+
+#### Error Handling Examples
+
+![Error Logging Terminal](./demo-usage-examples/terminal-error-handling.png)
 
 ### Usage Workflow Examples
 
@@ -280,23 +324,22 @@ The daily command now awards **1-10 random honor points** (equal probability for
 
 1. **First Message:** User sends a message → Earns 3 points (logged to console)
 2. **Check Profile:** User runs `/profile` → Sees "Unranked" status
-3. **Daily Check-in:** User clicks "Claim Daily" button or runs `/daily` → Earns random 1-10 points
-4. **More Messages:** User chats → Earns more points (up to 5 rewards per day)
+3. **Daily Check-in:** User runs `/daily` → Earns 100 points, streak starts at 1 day
+4. **More Messages:** User chats → Earns more points, daily counter increments
 5. **Check Rankings:** User runs `/leaderboard` → Sees their position
 
-#### Example 2: Daily Rewards
+#### Example 2: Streak Building
 
-1. **Day 1:** Click "Claim Daily" → Earns 7 random honor points
-2. **Day 2:** Click "Claim Daily" → Earns 3 random honor points
-3. **Day 3:** Click "Claim Daily" → Earns 10 random honor points (lucky!)
-4. **Already Claimed:** Click "Claim Daily" → Shows ephemeral message "You have already claimed your daily reward today"
+1. **Day 1:** `/daily` → 100 points (1x multiplier, streak: 1 day)
+2. **Day 2:** `/daily` → 110 points (1.1x multiplier, streak: 2 days) 🔥
+3. **Day 3:** `/daily` → 120 points (1.2x multiplier, streak: 3 days) 🔥
+4. **Day 10:** `/daily` → 200 points (2x multiplier, streak: 10 days) 🔥🔥
 
 #### Example 3: Admin Backup Workflow
 
-<div align="center">
-  <img src="./demo-usage-examples/backup-export.png" alt="Backup Export" style="max-width: 900px; width: 48%; height: auto; display: inline-block; margin: 0 1%;">
-  <img src="./demo-usage-examples/backup-import.png" alt="Backup Import" style="max-width: 900px; width: 48%; height: auto; display: inline-block; margin: 0 1%;">
-</div>
+![Backup Export](./demo-usage-examples/backup-export.png)
+
+![Backup Import](./demo-usage-examples/backup-import.png)
 
 ---
 
@@ -389,28 +432,68 @@ docker run -d \
 | `CLIENT_ID`                  | Discord application client ID                              | ✅ Yes   | -                       |
 | `GUILD_ID`                   | Discord server (guild) ID                                  | ✅ Yes   | -                       |
 | `MONGO_URI`                  | MongoDB connection string                                  | ✅ Yes   | -                       |
-| `LEADERBOARD_CHANNEL_ID`     | Channel ID for leaderboard updates and daily button        | ✅ Yes   | -                       |
+| `LEADERBOARD_CHANNEL_ID`     | Channel ID for leaderboard updates                         | ✅ Yes   | -                       |
 | `PORT`                       | Web dashboard port                                         | ❌ No    | `3000`                  |
 | `WEB_USER`                   | Admin panel username                                       | ❌ No    | `admin`                 |
 | `WEB_PASS`                   | Admin panel password (⚠️ **REQUIRED in production**)       | ❌ No    | `password` (dev only)   |
+| `ENABLE_STREAK`              | Enable daily streak multiplier (set to 'false' to disable) | ❌ No    | `true`                  |
+| `DAILY_MESSAGE_POINTS_LIMIT` | Daily limit for message points                             | ❌ No    | `100`                   |
+| `DAILYCHECKING_CHANNEL_ID`   | Channel ID for daily reward button (persistent view)       | ❌ No    | -                       |
 | `ALLOWED_ORIGIN`             | CORS allowed origin for dashboard                          | ❌ No    | `http://localhost:3000` |
 | `NODE_ENV`                   | Environment mode (`production` or `development`)           | ❌ No    | `production`            |
 
-### Feature Details
+### Feature Flags
 
-#### Daily Reward System
+#### `ENABLE_STREAK`
 
-- **Daily Command/Button:** Awards **1-10 random honor points** (equal probability)
-- **Claim Limit:** Once per day per user
-- **Reset Time:** Midnight UTC
-- **Persistent Button:** Available in the leaderboard channel, works across bot restarts
+Controls the daily streak multiplier system:
 
-#### Message Points System
+- **Default:** `true` (enabled)
+- **Set to `false`** to disable streak bonuses (users always get 100 points)
+- **When enabled:** Users receive increasing multipliers:
+  - Day 1: 100 points (1.0x)
+  - Day 2: 110 points (1.1x)
+  - Day 3: 120 points (1.2x)
+  - Day 4: 130 points (1.3x)
+  - Day 5: 140 points (1.4x)
+  - Day 6: 150 points (1.5x)
+  - Day 7: 160 points (1.6x)
+  - Day 8: 170 points (1.7x)
+  - Day 9: 180 points (1.8x)
+  - Day 10+: 200 points (2.0x maximum)
+- **Streak Reset:** Missing a day resets to Day 1
 
-- **Points Per Message:** 1-5 random honor points (equal probability)
-- **Daily Limit:** 5 rewards per day (not points-based)
-- **Cooldown:** 60 seconds between rewards
-- **Reset Time:** Midnight UTC
+#### `DAILY_MESSAGE_POINTS_LIMIT`
+
+Controls how many points users can earn from messages per day:
+
+- **Default:** `100`
+- **Note:** This variable is for reference only. The actual system limits users to **5 messages per day** (not points-based)
+- **Recommendations:**
+  - `50` - More restrictive, quality-focused
+  - `100` - Balanced (default)
+  - `150` - More lenient for active servers
+  - `200` - Maximum for highly active communities
+- Resets automatically at midnight UTC
+
+#### `DAILYCHECKING_CHANNEL_ID` (Optional)
+
+Enables the **Daily Reward Button (Persistent View)** feature:
+
+- **Purpose:** Creates a persistent embed with a button in a designated channel for users to claim daily rewards
+- **Setup:**
+  1. Create a channel in your Discord server for daily check-ins (e.g., `#daily-checkin`)
+  2. Copy the channel ID
+  3. Add `DAILYCHECKING_CHANNEL_ID=<channel_id>` to your `.env` file
+  4. Restart the bot
+- **Behavior:**
+  - The bot automatically creates an embed with a "Claim Daily Reward" button in the specified channel
+  - Users can click the button to claim their daily reward (same as `/daily` command)
+  - The embed persists and updates automatically
+  - If the message is deleted, the bot recreates it on the next leaderboard update cycle (every 3 minutes)
+- **Requirements:**
+  - Bot must have `SendMessages`, `ViewChannel`, and `ManageMessages` permissions in the channel
+  - Channel must be accessible to users who want to claim rewards
 
 ---
 
@@ -632,25 +715,10 @@ We take security seriously and will respond promptly to any security concerns.
    - View Channel
    - Send Messages
    - Manage Messages (to edit existing leaderboard)
-3. **Note:** Leaderboard updates **only on the 1st day of every month** at midnight UTC
-4. **Check logs** for leaderboard service errors:
+3. **Check logs** for leaderboard service errors:
    ```bash
    # If using Docker
    docker-compose logs -f app | grep LeaderboardService
-   ```
-
-#### Daily button not appearing
-
-1. **Verify `LEADERBOARD_CHANNEL_ID` is set correctly** in `.env`
-2. **Check bot has permissions** in the leaderboard channel:
-   - View Channel
-   - Send Messages
-   - Use External Emojis (for button emoji)
-3. **Restart the bot** - The button is created when the bot starts
-4. **Check logs** for daily button setup errors:
-   ```bash
-   # If using Docker
-   docker-compose logs -f app | grep "daily button"
    ```
 
 #### MongoDB connection errors

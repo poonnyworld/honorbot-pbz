@@ -135,19 +135,40 @@ export function startDashboard(leaderboardService?: LeaderboardService): void {
       const topUsers = await User.find({})
         .sort({ honorPoints: -1 })
         .limit(50)
-        .select('userId username honorPoints dailyCheckinStreak')
+        .select('userId username honorPoints dailyCheckinStreak lastDailyReset')
         .lean();
 
       console.log(`[Dashboard] Found ${topUsers.length} users in database`);
 
+      // Calculate today's UTC date for check-in status
+      const nowUTC = new Date();
+      const todayUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate()));
+
       // Transform data for frontend
-      const leaderboard = topUsers.map((user, index) => ({
-        rank: index + 1,
-        userId: user.userId,
-        username: user.username,
-        honorPoints: user.honorPoints || 0,
-        dailyStreak: user.dailyCheckinStreak || 0,
-      }));
+      const leaderboard = topUsers.map((user, index) => {
+        // Calculate daily check-in status
+        let dailyCheckinStatus = '⏳ Available';
+        if (user.lastDailyReset) {
+          const lastResetDateUTC = new Date(user.lastDailyReset);
+          const lastResetUTC = new Date(Date.UTC(
+            lastResetDateUTC.getUTCFullYear(),
+            lastResetDateUTC.getUTCMonth(),
+            lastResetDateUTC.getUTCDate()
+          ));
+          if (user.lastDailyReset.getTime() !== 0 && todayUTC.getTime() === lastResetUTC.getTime()) {
+            dailyCheckinStatus = '✅ Claimed';
+          }
+        }
+
+        return {
+          rank: index + 1,
+          userId: user.userId,
+          username: user.username,
+          honorPoints: user.honorPoints || 0,
+          dailyStreak: user.dailyCheckinStreak || 0,
+          dailyCheckinStatus: dailyCheckinStatus,
+        };
+      });
 
       console.log(`[Dashboard] Returning leaderboard with ${leaderboard.length} entries`);
 

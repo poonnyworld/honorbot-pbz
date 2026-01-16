@@ -86,6 +86,41 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     // Get user avatar
     const avatarUrl = interaction.user.displayAvatarURL({ size: 256 });
 
+    // Calculate daily message statistics
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastResetDate = user.lastMessagePointsReset || new Date(0);
+    const lastReset = new Date(
+      lastResetDate.getFullYear(),
+      lastResetDate.getMonth(),
+      lastResetDate.getDate()
+    );
+
+    // Get current daily message count (0 if new day, otherwise user's count)
+    const currentDailyMessageCount = today.getTime() > lastReset.getTime() ? 0 : user.dailyMessageCount;
+    const DAILY_MESSAGE_REWARD_LIMIT = 5; // Matches messageCreate.ts constant
+
+    // Get today's message points (dailyPoints resets with dailyMessageCount)
+    const todayMessagePoints = today.getTime() > lastReset.getTime() ? 0 : user.dailyPoints;
+
+    // Calculate daily check-in status (using UTC like in daily.ts)
+    const nowUTC = new Date();
+    const todayUTC = new Date(Date.UTC(nowUTC.getUTCFullYear(), nowUTC.getUTCMonth(), nowUTC.getUTCDate()));
+    let lastResetDateUTC: Date;
+    if (!user.lastDailyReset || user.lastDailyReset.getTime() === 0) {
+      lastResetDateUTC = new Date(0);
+    } else {
+      lastResetDateUTC = new Date(user.lastDailyReset);
+    }
+    const lastResetUTC = new Date(Date.UTC(
+      lastResetDateUTC.getUTCFullYear(),
+      lastResetDateUTC.getUTCMonth(),
+      lastResetDateUTC.getUTCDate()
+    ));
+    const dailyCheckinStatus = (user.lastDailyReset && user.lastDailyReset.getTime() !== 0 && todayUTC.getTime() === lastResetUTC.getTime())
+      ? '✅ **Claimed**'
+      : '⏳ **Available**';
+
     // Build fields array conditionally
     const fields = [
       {
@@ -108,6 +143,27 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         inline: true,
       });
     }
+
+    // Add Daily Message Progress field
+    fields.push({
+      name: '💬 Daily Message Progress',
+      value: `Messages: **${currentDailyMessageCount}/${DAILY_MESSAGE_REWARD_LIMIT}**`,
+      inline: true,
+    });
+
+    // Add Today's Message Points field
+    fields.push({
+      name: '📝 Today\'s Message Points',
+      value: `**${todayMessagePoints.toLocaleString()}** points earned today`,
+      inline: true,
+    });
+
+    // Add Daily Check-in Status field
+    fields.push({
+      name: '🧘 Daily Check-in Status',
+      value: dailyCheckinStatus,
+      inline: true,
+    });
 
     fields.push({
       name: 'Join Date',

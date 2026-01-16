@@ -23,38 +23,38 @@ const UserSchema: Schema = new Schema(
       unique: true,
       index: true,
     },
-  username: {
-    type: String,
-    required: true,
-  },
-  honorPoints: {
-    type: Number,
-    default: 0,
-  },
-  lastMessageDate: {
-    type: Date,
-    default: Date.now,
-  },
-  dailyPoints: {
-    type: Number,
-    default: 0,
-  },
-  lastMessagePointsReset: {
-    type: Date,
-    default: Date.now,
-  },
-  dailyMessageCount: {
-    type: Number,
-    default: 0,
-  },
-  lastDailyReset: {
-    type: Date,
-    default: Date.now,
-  },
-  dailyCheckinStreak: {
-    type: Number,
-    default: 0,
-  },
+    username: {
+      type: String,
+      required: true,
+    },
+    honorPoints: {
+      type: Number,
+      default: 0,
+    },
+    lastMessageDate: {
+      type: Date,
+      default: Date.now,
+    },
+    dailyPoints: {
+      type: Number,
+      default: 0,
+    },
+    lastMessagePointsReset: {
+      type: Date,
+      default: Date.now,
+    },
+    dailyMessageCount: {
+      type: Number,
+      default: 0,
+    },
+    lastDailyReset: {
+      type: Date,
+      default: Date.now,
+    },
+    dailyCheckinStreak: {
+      type: Number,
+      default: 0,
+    },
     lastCheckinDate: {
       type: Date,
       default: new Date(0), // Set to epoch so first check-in is treated as day 1
