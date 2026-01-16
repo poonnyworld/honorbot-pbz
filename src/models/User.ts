@@ -7,6 +7,7 @@ export interface IUser extends Document {
   lastMessageDate: Date;
   dailyPoints: number; // Daily points earned from messages
   lastMessagePointsReset: Date; // Last time message points were reset (daily)
+  dailyMessageCount: number; // Number of times user earned points from messages today
   lastDailyReset: Date; // Last time daily check-in was used
   dailyCheckinStreak: number;
   lastCheckinDate: Date;
@@ -41,6 +42,10 @@ const UserSchema: Schema = new Schema(
   lastMessagePointsReset: {
     type: Date,
     default: Date.now,
+  },
+  dailyMessageCount: {
+    type: Number,
+    default: 0,
   },
   lastDailyReset: {
     type: Date,

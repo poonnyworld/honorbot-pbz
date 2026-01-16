@@ -13,9 +13,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
 
   try {
-    // Feature Flag: Read ENABLE_STREAK from environment (defaults to true if not set)
-    // Parse as boolean (handles 'false', 'true', '0', '1', etc.)
-    const enableStreak = process.env.ENABLE_STREAK === undefined || process.env.ENABLE_STREAK?.toLowerCase() === 'true';
 
     // Fetch or create user from DB
     let user = await User.findOne({ userId: interaction.user.id });
@@ -28,6 +25,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         lastMessageDate: new Date(),
         dailyPoints: 0,
         lastMessagePointsReset: new Date(),
+        dailyMessageCount: 0,
         lastDailyReset: new Date(0), // Set to epoch to allow first daily
         dailyCheckinStreak: 0,
         lastCheckinDate: new Date(0), // Set to epoch
@@ -64,62 +62,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         )
         .setTimestamp();
 
-      // Only show streak in footer if streak system is enabled
-      if (enableStreak) {
-        embed.setFooter({
-          text: `Current Streak: ${user.dailyCheckinStreak} days`,
-        });
-      }
-
       await interaction.editReply({ embeds: [embed] });
       return;
     }
 
-    const basePoints = 100;
-    let pointsGained = basePoints;
-    let streak = user.dailyCheckinStreak || 0;
-    let multiplier = 1.0;
+    // Generate random honor points between 1 and 10 (equal probability)
+    const pointsGained = Math.floor(Math.random() * 10) + 1;
 
-    // Streak Logic (only if enabled)
-    if (enableStreak) {
-      // Check streak logic
-      const lastCheckin = new Date(user.lastCheckinDate);
-      const lastCheckinDay = new Date(
-        lastCheckin.getFullYear(),
-        lastCheckin.getMonth(),
-        lastCheckin.getDate()
-      );
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      if (lastCheckinDay.getTime() === yesterday.getTime()) {
-        // Continuous streak - increment
-        streak += 1;
-      } else if (lastCheckinDay.getTime() < yesterday.getTime()) {
-        // Missed days - reset to 1
-        streak = 1;
-      } else {
-        // First time or same day (shouldn't happen, but safety)
-        if (streak === 0) {
-          streak = 1;
-        }
-      }
-
-      // Calculate points with multiplier
-      multiplier = Math.min(1 + streak * 0.1, 2.0); // Max 2x multiplier
-      pointsGained = Math.floor(basePoints * multiplier);
-
-      // Update streak fields
-      user.dailyCheckinStreak = streak;
-      user.lastCheckinDate = now;
-    } else {
-      // Streak disabled: Just give base points, no multiplier
-      // Still update lastCheckinDate to prevent double claiming
-      user.lastCheckinDate = now;
-      // Keep existing streak value (don't reset it, in case we re-enable later)
-    }
-
-    // Update user (always update these fields)
+    // Update user
     user.honorPoints += pointsGained;
     user.lastDailyReset = now;
     await user.save();
@@ -128,32 +78,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const embed = new EmbedBuilder()
       .setColor(0x8b0000)
       .setTitle('🧘 Daily Meditation Complete')
-      .setTimestamp();
-
-    if (enableStreak) {
-      // Full embed with streak information
-      embed.setDescription(
-        `**${interaction.user.username}**, your cultivation session has ended.\n\n` +
-          `**Honor Points Gained:** ${pointsGained} ⚔️\n` +
-          `**Base Points:** ${basePoints}\n` +
-          `**Streak Multiplier:** ${(multiplier * 100).toFixed(0)}% (${streak} day${streak !== 1 ? 's' : ''})\n\n` +
-          `**Current Streak:** ${streak} day${streak !== 1 ? 's' : ''} 🔥\n` +
-          `**Total Honor Points:** ${user.honorPoints} 🏆`
-      )
-      .setFooter({
-        text: 'Continue your daily practice to increase your streak bonus!',
-      });
-    } else {
-      // Simplified embed without streak information
-      embed.setDescription(
+      .setDescription(
         `**${interaction.user.username}**, your cultivation session has ended.\n\n` +
           `**Honor Points Gained:** ${pointsGained} ⚔️\n\n` +
           `**Total Honor Points:** ${user.honorPoints} 🏆`
       )
       .setFooter({
         text: 'Return tomorrow to claim your daily reward!',
-      });
-    }
+      })
+      .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
