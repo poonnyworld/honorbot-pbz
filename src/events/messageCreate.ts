@@ -18,6 +18,26 @@ const POINT_EMOJIS: Record<number, string> = {
   5: '5️⃣',
 };
 
+/**
+ * Get weighted random points based on probability distribution
+ * @returns Points from 1-5 with distribution: 1 (80%), 2 (10%), 3 (5%), 4 (3%), 5 (2%)
+ */
+function getWeightedRandomPoints(): number {
+  const random = Math.random() * 100; // Generate random number 0-100
+  
+  if (random < 80) {
+    return 1; // 80% chance
+  } else if (random < 90) {
+    return 2; // 10% chance (80-90)
+  } else if (random < 95) {
+    return 3; // 5% chance (90-95)
+  } else if (random < 98) {
+    return 4; // 3% chance (95-98)
+  } else {
+    return 5; // 2% chance (98-100)
+  }
+}
+
 export async function execute(message: Message): Promise<void> {
   // Ignore messages from bots
   if (message.author.bot) {
@@ -95,8 +115,9 @@ export async function execute(message: Message): Promise<void> {
       }
     }
 
-    // Calculate points to add (random 1-5)
-    const pointsToAdd = Math.floor(Math.random() * 5) + 1;
+    // Calculate points to add (weighted random 1-5)
+    // Distribution: 1 point (80%), 2 points (10%), 3 points (5%), 4 points (3%), 5 points (2%)
+    const pointsToAdd = getWeightedRandomPoints();
 
     // Add Points to honorPoints and increment dailyMessageCount
     user.honorPoints += pointsToAdd;
