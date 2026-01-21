@@ -7,6 +7,10 @@ import * as backupCommand from '../commands/backup';
 import * as resetCommand from '../commands/reset';
 import * as statusCommand from '../commands/status';
 import * as announceCommand from '../commands/announce';
+import * as gambleCommand from '../commands/gamble';
+// PVP system temporarily disabled
+// import * as pvpCommand from '../commands/pvp';
+import { LuckyDrawService } from '../services/LuckyDrawService';
 import { User } from '../models/User';
 
 export const name = Events.InteractionCreate;
@@ -18,10 +22,25 @@ export async function execute(interaction: Interaction): Promise<void> {
       await handleDailyButton(interaction);
       return;
     }
+    if (interaction.customId === 'luckydraw_claim_button') {
+      await LuckyDrawService.handleLuckyDrawButton(interaction);
+      return;
+    }
     if (interaction.customId.startsWith('reset_confirm_') || interaction.customId.startsWith('reset_cancel_')) {
       await resetCommand.handleResetButton(interaction);
       return;
     }
+    // PVP system temporarily disabled
+    // // Handle PVP accept challenge button
+    // if (interaction.customId.startsWith('pvp_accept_')) {
+    //   await pvpCommand.handleAcceptButton(interaction);
+    //   return;
+    // }
+    // // Handle PVP move buttons (rock, paper, scissors)
+    // if (interaction.customId.startsWith('pvp_move_')) {
+    //   await pvpCommand.handleMoveButton(interaction);
+    //   return;
+    // }
   }
 
   // Handle slash commands
@@ -59,6 +78,13 @@ export async function execute(interaction: Interaction): Promise<void> {
       case 'announce':
         await announceCommand.execute(interaction);
         break;
+      case 'gamble':
+        await gambleCommand.execute(interaction);
+        break;
+      // PVP system temporarily disabled
+      // case 'pvp':
+      //   await pvpCommand.execute(interaction);
+      //   break;
       default:
         console.warn(`[InteractionCreate] Unknown command: ${commandName}`);
     }

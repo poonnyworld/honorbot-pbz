@@ -5,6 +5,7 @@ import * as messageCreateEvent from './events/messageCreate';
 import * as interactionCreateEvent from './events/interactionCreate';
 import { LeaderboardService } from './services/LeaderboardService';
 import { AnnouncementService } from './services/AnnouncementService';
+import { LuckyDrawService } from './services/LuckyDrawService';
 import { startDashboard } from './dashboard/server';
 
 dotenv.config();
@@ -20,6 +21,7 @@ const client = new Client({
 });
 
 const leaderboardService = new LeaderboardService();
+const luckyDrawService = new LuckyDrawService();
 
 // Start dashboard server and pass leaderboardService instance
 // This allows the dashboard API to trigger manual leaderboard updates
@@ -33,6 +35,11 @@ client.once('ready', async () => {
   console.log('[Index] Initializing LeaderboardService...');
   leaderboardService.start(client);
   console.log('[Index] LeaderboardService initialization called.');
+
+  // Initialize lucky draw service
+  console.log('[Index] Initializing LuckyDrawService...');
+  luckyDrawService.start(client);
+  console.log('[Index] LuckyDrawService initialization called.');
 
   // Wait a bit to ensure all guilds and channels are cached
   console.log('[Index] Waiting 2 seconds for Discord cache to populate...');
@@ -55,12 +62,14 @@ client.once('ready', async () => {
 process.on('SIGINT', () => {
   console.log('\nShutting down gracefully...');
   leaderboardService.stop();
+  luckyDrawService.stop();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('\nShutting down gracefully...');
   leaderboardService.stop();
+  luckyDrawService.stop();
   process.exit(0);
 });
 

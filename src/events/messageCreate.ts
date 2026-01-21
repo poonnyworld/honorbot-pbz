@@ -24,7 +24,7 @@ const POINT_EMOJIS: Record<number, string> = {
  */
 function getWeightedRandomPoints(): number {
   const random = Math.random() * 100; // Generate random number 0-100
-  
+
   if (random < 80) {
     return 1; // 80% chance
   } else if (random < 90) {

@@ -5,6 +5,39 @@ import {
 } from 'discord.js';
 import { User } from '../models/User';
 
+/**
+ * Get weighted random points for daily check-in (1-10)
+ * Distribution favors lower points:
+ * 1 point (30%), 2 points (20%), 3 points (15%), 4 points (12%), 5 points (10%),
+ * 6 points (6%), 7 points (4%), 8 points (2%), 9 points (0.5%), 10 points (0.5%)
+ * @returns Points from 1-10 with weighted probability
+ */
+function getWeightedRandomDailyPoints(): number {
+  const random = Math.random() * 100; // Generate random number 0-100
+  
+  if (random < 30) {
+    return 1; // 30% chance
+  } else if (random < 50) {
+    return 2; // 20% chance (30-50)
+  } else if (random < 65) {
+    return 3; // 15% chance (50-65)
+  } else if (random < 77) {
+    return 4; // 12% chance (65-77)
+  } else if (random < 87) {
+    return 5; // 10% chance (77-87)
+  } else if (random < 93) {
+    return 6; // 6% chance (87-93)
+  } else if (random < 97) {
+    return 7; // 4% chance (93-97)
+  } else if (random < 99) {
+    return 8; // 2% chance (97-99)
+  } else if (random < 99.5) {
+    return 9; // 0.5% chance (99-99.5)
+  } else {
+    return 10; // 0.5% chance (99.5-100)
+  }
+}
+
 export const data = new SlashCommandBuilder()
   .setName('daily')
   .setDescription('Claim your daily honor points meditation reward');
@@ -76,8 +109,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    // Generate random honor points between 1 and 10 (equal probability)
-    const pointsGained = Math.floor(Math.random() * 10) + 1;
+    // Generate weighted random honor points between 1 and 10
+    // Lower points have higher probability, higher points have lower probability
+    const pointsGained = getWeightedRandomDailyPoints();
 
     // Update user
     user.honorPoints += pointsGained;
