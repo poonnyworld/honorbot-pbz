@@ -2,17 +2,45 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
   ChatInputCommandInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { User } from '../models/User';
+import mongoose from 'mongoose';
+import { MONGODB_CONNECTED, MONGODB_DISCONNECTED } from '../utils/connectDB';
 
 export const data = new SlashCommandBuilder()
   .setName('profile')
   .setDescription('View your honor points profile and ranking');
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
+    // Check MongoDB connection - try to reconnect if disconnected
+    const connectionState = mongoose.connection.readyState;
+    
+    if (connectionState !== MONGODB_CONNECTED) {
+      // If disconnected, try to reconnect once
+      if (connectionState === MONGODB_DISCONNECTED) {
+        const { connectDB } = await import('../utils/connectDB');
+        try {
+          await connectDB();
+          // Wait a bit for connection to establish
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (reconnectError) {
+          // Reconnection failed
+        }
+      }
+      
+      // Check again after reconnection attempt
+      if (mongoose.connection.readyState !== MONGODB_CONNECTED) {
+        await interaction.editReply({
+          content: '❌ Database connection is not available. Please ensure MongoDB is running and try again later.',
+        });
+        return;
+      }
+    }
+
     // Feature Flag: Read ENABLE_STREAK from environment (defaults to true if not set)
     const enableStreak = process.env.ENABLE_STREAK === undefined || process.env.ENABLE_STREAK?.toLowerCase() === 'true';
 

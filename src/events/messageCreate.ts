@@ -1,5 +1,7 @@
 import { Message, Events } from 'discord.js';
 import { User } from '../models/User';
+import mongoose from 'mongoose';
+import { MONGODB_CONNECTED } from '../utils/connectDB';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -47,6 +49,11 @@ export async function execute(message: Message): Promise<void> {
   // Ignore messages that are commands (slash commands are handled by interactionCreate, but be safe)
   // Also ignore empty messages
   if (!message.content || message.content.trim().length === 0) {
+    return;
+  }
+
+  // Check MongoDB connection - silently return if not connected
+  if (mongoose.connection.readyState !== MONGODB_CONNECTED) {
     return;
   }
 

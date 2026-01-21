@@ -1,4 +1,4 @@
-import { Events, Interaction, ButtonInteraction, EmbedBuilder } from 'discord.js';
+import { Events, Interaction, ButtonInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import * as dailyCommand from '../commands/daily';
 import * as profileCommand from '../commands/profile';
 import * as helpCommand from '../commands/help';
@@ -12,6 +12,8 @@ import * as gambleCommand from '../commands/gamble';
 // import * as pvpCommand from '../commands/pvp';
 import { LuckyDrawService } from '../services/LuckyDrawService';
 import { User } from '../models/User';
+import mongoose from 'mongoose';
+import { MONGODB_CONNECTED } from '../utils/connectDB';
 
 export const name = Events.InteractionCreate;
 
@@ -99,12 +101,12 @@ export async function execute(interaction: Interaction): Promise<void> {
       if (interaction.deferred || interaction.replied) {
         await interaction.followUp({
           content: 'An error occurred while executing this command.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       } else {
         await interaction.reply({
           content: 'An error occurred while executing this command.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     } catch (replyError) {
@@ -117,9 +119,17 @@ export async function execute(interaction: Interaction): Promise<void> {
  * Handle the daily claim button interaction
  */
 async function handleDailyButton(interaction: ButtonInteraction): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   try {
+    // Check MongoDB connection
+    if (mongoose.connection.readyState !== MONGODB_CONNECTED) {
+      await interaction.editReply({
+        content: '❌ Database connection is not available. Please try again later.',
+      });
+      return;
+    }
+
     // Fetch or create user from DB
     let user = await User.findOne({ userId: interaction.user.id });
 

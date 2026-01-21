@@ -9,6 +9,12 @@ services:
       MONGO_INITDB_DATABASE: honorbot
     volumes:
       - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   app:
     build:
@@ -17,7 +23,8 @@ services:
     container_name: honorbot-app
     restart: unless-stopped
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     ports:
       - "3000:3000"
     environment:
@@ -26,6 +33,12 @@ services:
     env_file:
       - .env
     command: node dist/index.js
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/leaderboard', (r) => {process.exit(r.statusCode === 200 || r.statusCode === 401 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   mongodb_data:

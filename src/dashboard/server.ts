@@ -7,6 +7,7 @@ import { readFileSync } from 'fs';
 import { User } from '../models/User';
 import { LeaderboardService } from '../services/LeaderboardService';
 import mongoose from 'mongoose';
+import { MONGODB_CONNECTED } from '../utils/connectDB';
 
 // Store leaderboard service instance (will be set by index.ts)
 let leaderboardServiceInstance: LeaderboardService | null = null;
@@ -124,7 +125,7 @@ export function startDashboard(leaderboardService?: LeaderboardService): void {
       console.log('[Dashboard] GET /api/leaderboard - Request received');
       
       // Check MongoDB connection
-      if (mongoose.connection.readyState !== 1) {
+      if (mongoose.connection.readyState !== MONGODB_CONNECTED) {
         console.error('[Dashboard] MongoDB not connected. Connection state:', mongoose.connection.readyState);
         return res.status(503).json({
           success: false,

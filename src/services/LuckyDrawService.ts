@@ -1,5 +1,7 @@
-import { Client, TextChannel, EmbedBuilder, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { Client, TextChannel, EmbedBuilder, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { User } from '../models/User';
+import mongoose from 'mongoose';
+import { MONGODB_CONNECTED } from '../utils/connectDB';
 
 const DAILY_LIMIT = 5;
 const WIN_REWARD = +5;  // Win: +5 points (60% chance)
@@ -217,9 +219,17 @@ export class LuckyDrawService {
    * Handle lucky draw button click
    */
   public static async handleLuckyDrawButton(interaction: any): Promise<void> {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     try {
+      // Check MongoDB connection
+      if (mongoose.connection.readyState !== MONGODB_CONNECTED) {
+        await interaction.editReply({
+          content: '❌ Database connection is not available. Please try again later.',
+        });
+        return;
+      }
+
       // Find or create user
       let user = await User.findOne({ userId: interaction.user.id });
 

@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 
+// Connection state constants - export for use in other files
+export const MONGODB_CONNECTED = 1 as const; // mongoose.ConnectionStates.connected
+export const MONGODB_DISCONNECTED = 0 as const; // mongoose.ConnectionStates.disconnected
+
 export const connectDB = async (): Promise<void> => {
   try {
     const mongoURI = process.env.MONGO_URI;
@@ -11,7 +15,7 @@ export const connectDB = async (): Promise<void> => {
     }
 
     // Check if already connected
-    if (mongoose.connection.readyState === 1) {
+    if (mongoose.connection.readyState === MONGODB_CONNECTED) {
       console.log('✓ MongoDB already connected');
       return;
     }
@@ -26,34 +30,67 @@ export const connectDB = async (): Promise<void> => {
     // Connection options for better reliability
     const options = {
       maxPoolSize: 10, // Maintain up to 10 socket connections
-      serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+      serverSelectionTimeoutMS: 10000, // Keep trying to send operations for 10 seconds
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
       connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
+      bufferCommands: false, // Don't buffer commands if not connected - fail fast
+      retryWrites: true, // Enable retry writes
     };
 
-    console.log(`[MongoDB] Attempting to connect to MongoDB...`);
-    await mongoose.connect(normalizedURI, options);
-    console.log('✓ MongoDB connected successfully');
-
-    // Handle connection events
+    // Set up connection event handlers BEFORE connecting
     mongoose.connection.on('error', (error) => {
       console.error('❌ MongoDB connection error:', error);
     });
 
     mongoose.connection.on('disconnected', () => {
       console.warn('⚠️  MongoDB disconnected');
+      // Try to reconnect after 5 seconds
+      setTimeout(() => {
+        if (mongoose.connection.readyState === MONGODB_DISCONNECTED) {
+          console.log('[MongoDB] Attempting to reconnect...');
+          connectDB().catch((error) => {
+            console.error('[MongoDB] Reconnection failed:', error);
+          });
+        }
+      }, 5000);
     });
 
     mongoose.connection.on('reconnected', () => {
       console.log('✓ MongoDB reconnected');
     });
 
-    // Handle process termination
-    process.on('SIGINT', async () => {
-      await mongoose.connection.close();
-      console.log('MongoDB connection closed through app termination');
-      process.exit(0);
-    });
+    console.log(`[MongoDB] Attempting to connect to MongoDB at ${normalizedURI}...`);
+    
+    // Try to connect with retry logic
+    let retries = 3;
+    let lastError: Error | null = null;
+    
+    while (retries > 0) {
+      try {
+        await mongoose.connect(normalizedURI, options);
+        console.log('✓ MongoDB connected successfully');
+        
+        // Handle process termination
+        process.on('SIGINT', async () => {
+          await mongoose.connection.close();
+          console.log('MongoDB connection closed through app termination');
+          process.exit(0);
+        });
+        
+        return; // Success, exit function
+      } catch (connectError) {
+        lastError = connectError instanceof Error ? connectError : new Error(String(connectError));
+        retries--;
+        
+        if (retries > 0) {
+          console.warn(`[MongoDB] Connection attempt failed, retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+        }
+      }
+    }
+    
+    // If all retries failed, throw the last error
+    throw lastError || new Error('Failed to connect to MongoDB after retries');
   } catch (error) {
     console.error('❌ Error connecting to MongoDB:', error);
     
@@ -76,5 +113,15 @@ export const connectDB = async (): Promise<void> => {
     
     // Don't throw error - let bot continue running without database
     // This is better for development/testing
+    // Disable command buffering when connection fails
+    mongoose.set('bufferCommands', false);
   }
+};
+
+/**
+ * Check if MongoDB is connected
+ * @returns true if connected, false otherwise
+ */
+export const isDBConnected = (): boolean => {
+  return mongoose.connection.readyState === MONGODB_CONNECTED;
 };
