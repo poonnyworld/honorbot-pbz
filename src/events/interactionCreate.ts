@@ -6,7 +6,6 @@ import * as leaderboardCommand from '../commands/leaderboard';
 import * as backupCommand from '../commands/backup';
 import * as resetCommand from '../commands/reset';
 import * as statusCommand from '../commands/status';
-import * as announceCommand from '../commands/announce';
 import * as gambleCommand from '../commands/gamble';
 // PVP system temporarily disabled
 // import * as pvpCommand from '../commands/pvp';
@@ -76,9 +75,6 @@ export async function execute(interaction: Interaction): Promise<void> {
         break;
       case 'status':
         await statusCommand.execute(interaction);
-        break;
-      case 'announce':
-        await announceCommand.execute(interaction);
         break;
       case 'gamble':
         await gambleCommand.execute(interaction);

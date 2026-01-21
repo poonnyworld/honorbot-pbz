@@ -4,7 +4,6 @@ import { connectDB } from './utils/connectDB';
 import * as messageCreateEvent from './events/messageCreate';
 import * as interactionCreateEvent from './events/interactionCreate';
 import { LeaderboardService } from './services/LeaderboardService';
-import { AnnouncementService } from './services/AnnouncementService';
 import { LuckyDrawService } from './services/LuckyDrawService';
 import { startDashboard } from './dashboard/server';
 
@@ -44,18 +43,6 @@ client.once('ready', async () => {
   // Wait a bit to ensure all guilds and channels are cached
   console.log('[Index] Waiting 2 seconds for Discord cache to populate...');
   await new Promise(resolve => setTimeout(resolve, 2000));
-
-  // Send announcement to instructions channel
-  console.log('[Index] Sending announcement to instructions channel...');
-  try {
-    await AnnouncementService.sendAnnouncement(client);
-    console.log('[Index] ✓ Announcement process completed.');
-  } catch (error) {
-    console.error('[Index] ❌ Error sending announcement:', error);
-    if (error instanceof Error) {
-      console.error('[Index] Error details:', error.message);
-    }
-  }
 });
 
 // Handle graceful shutdown
