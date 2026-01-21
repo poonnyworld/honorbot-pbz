@@ -11,6 +11,8 @@ export interface IUser extends Document {
   lastDailyReset: Date; // Last time daily check-in was used
   dailyCheckinStreak: number;
   lastCheckinDate: Date;
+  dailyLuckyDrawCount: number; // Number of lucky draw plays today
+  lastLuckyDrawDate: Date; // Last date when lucky draw was played
   createdAt?: Date; // Added by mongoose timestamps
   updatedAt?: Date; // Added by mongoose timestamps
 }
@@ -58,6 +60,14 @@ const UserSchema: Schema = new Schema(
     lastCheckinDate: {
       type: Date,
       default: new Date(0), // Set to epoch so first check-in is treated as day 1
+    },
+    dailyLuckyDrawCount: {
+      type: Number,
+      default: 0,
+    },
+    lastLuckyDrawDate: {
+      type: Date,
+      default: new Date(0), // Set to epoch to allow first play
     },
   },
   {
