@@ -7,7 +7,7 @@ export const MONGODB_DISCONNECTED = 0 as const; // mongoose.ConnectionStates.dis
 export const connectDB = async (): Promise<void> => {
   try {
     const mongoURI = process.env.MONGO_URI;
-    
+
     if (!mongoURI) {
       console.error('❌ MONGO_URI is not defined in environment variables');
       console.error('⚠️  Bot will continue running but database features will not work.');
@@ -34,6 +34,7 @@ export const connectDB = async (): Promise<void> => {
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
       connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
       bufferCommands: false, // Don't buffer commands if not connected - fail fast
+      bufferMaxEntries: 0, // Disable buffering completely
       retryWrites: true, // Enable retry writes
     };
 
@@ -60,40 +61,40 @@ export const connectDB = async (): Promise<void> => {
     });
 
     console.log(`[MongoDB] Attempting to connect to MongoDB at ${normalizedURI}...`);
-    
+
     // Try to connect with retry logic
     let retries = 3;
     let lastError: Error | null = null;
-    
+
     while (retries > 0) {
       try {
         await mongoose.connect(normalizedURI, options);
         console.log('✓ MongoDB connected successfully');
-        
+
         // Handle process termination
         process.on('SIGINT', async () => {
           await mongoose.connection.close();
           console.log('MongoDB connection closed through app termination');
           process.exit(0);
         });
-        
+
         return; // Success, exit function
       } catch (connectError) {
         lastError = connectError instanceof Error ? connectError : new Error(String(connectError));
         retries--;
-        
+
         if (retries > 0) {
           console.warn(`[MongoDB] Connection attempt failed, retrying... (${retries} attempts left)`);
           await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
         }
       }
     }
-    
+
     // If all retries failed, throw the last error
     throw lastError || new Error('Failed to connect to MongoDB after retries');
   } catch (error) {
     console.error('❌ Error connecting to MongoDB:', error);
-    
+
     if (error instanceof Error) {
       if (error.message.includes('ECONNREFUSED') || error.message.includes('closed')) {
         console.error('');
@@ -110,7 +111,7 @@ export const connectDB = async (): Promise<void> => {
         console.error('Error details:', error.message);
       }
     }
-    
+
     // Don't throw error - let bot continue running without database
     // This is better for development/testing
     // Disable command buffering when connection fails
