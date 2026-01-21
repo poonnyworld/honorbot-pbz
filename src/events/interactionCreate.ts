@@ -6,6 +6,7 @@ import * as leaderboardCommand from '../commands/leaderboard';
 import * as backupCommand from '../commands/backup';
 import * as resetCommand from '../commands/reset';
 import * as statusCommand from '../commands/status';
+import * as announceCommand from '../commands/announce';
 import { User } from '../models/User';
 
 export const name = Events.InteractionCreate;
@@ -54,6 +55,9 @@ export async function execute(interaction: Interaction): Promise<void> {
         break;
       case 'status':
         await statusCommand.execute(interaction);
+        break;
+      case 'announce':
+        await announceCommand.execute(interaction);
         break;
       default:
         console.warn(`[InteractionCreate] Unknown command: ${commandName}`);

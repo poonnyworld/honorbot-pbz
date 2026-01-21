@@ -4,6 +4,7 @@ import { connectDB } from './utils/connectDB';
 import * as messageCreateEvent from './events/messageCreate';
 import * as interactionCreateEvent from './events/interactionCreate';
 import { LeaderboardService } from './services/LeaderboardService';
+import { AnnouncementService } from './services/AnnouncementService';
 import { startDashboard } from './dashboard/server';
 
 dotenv.config();
@@ -24,7 +25,7 @@ const leaderboardService = new LeaderboardService();
 // This allows the dashboard API to trigger manual leaderboard updates
 startDashboard(leaderboardService);
 
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`Logged in as ${client.user?.tag}!`);
   console.log('Bot is ready! Use "npm run deploy" to register slash commands.');
 
@@ -32,6 +33,22 @@ client.once('ready', () => {
   console.log('[Index] Initializing LeaderboardService...');
   leaderboardService.start(client);
   console.log('[Index] LeaderboardService initialization called.');
+
+  // Wait a bit to ensure all guilds and channels are cached
+  console.log('[Index] Waiting 2 seconds for Discord cache to populate...');
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  // Send announcement to instructions channel
+  console.log('[Index] Sending announcement to instructions channel...');
+  try {
+    await AnnouncementService.sendAnnouncement(client);
+    console.log('[Index] ✓ Announcement process completed.');
+  } catch (error) {
+    console.error('[Index] ❌ Error sending announcement:', error);
+    if (error instanceof Error) {
+      console.error('[Index] Error details:', error.message);
+    }
+  }
 });
 
 // Handle graceful shutdown
@@ -51,10 +68,11 @@ process.on('SIGTERM', () => {
 client.on(messageCreateEvent.name, messageCreateEvent.execute);
 client.on(interactionCreateEvent.name, interactionCreateEvent.execute);
 
-// Connect to MongoDB
+// Connect to MongoDB (non-blocking - bot will continue even if MongoDB fails)
 connectDB().catch((error) => {
   console.error('Failed to connect to MongoDB:', error);
-  process.exit(1);
+  // Don't exit - allow bot to run without database for testing
+  // process.exit(1);
 });
 
 // Login to Discord
