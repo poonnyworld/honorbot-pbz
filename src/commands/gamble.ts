@@ -31,7 +31,10 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply();
+  // Only defer if not already deferred (for modal submissions)
+  if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferReply();
+  }
 
   try {
     const betAmount = interaction.options.getInteger('bet_amount', true);

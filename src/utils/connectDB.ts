@@ -34,7 +34,7 @@ export const connectDB = async (): Promise<void> => {
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
       connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
       bufferCommands: false, // Don't buffer commands if not connected - fail fast
-      bufferMaxEntries: 0, // Disable buffering completely
+      // Note: bufferMaxEntries is deprecated and not supported in newer MongoDB drivers
       retryWrites: true, // Enable retry writes
     };
 

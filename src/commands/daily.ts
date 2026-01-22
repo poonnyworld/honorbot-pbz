@@ -12,7 +12,7 @@ import { User } from '../models/User';
  * 6 points (6%), 7 points (4%), 8 points (2%), 9 points (0.5%), 10 points (0.5%)
  * @returns Points from 1-10 with weighted probability
  */
-function getWeightedRandomDailyPoints(): number {
+export function getWeightedRandomDailyPoints(): number {
   const random = Math.random() * 100; // Generate random number 0-100
   
   if (random < 30) {
@@ -43,103 +43,45 @@ export const data = new SlashCommandBuilder()
   .setDescription('Claim your daily honor points meditation reward');
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply();
+  await interaction.deferReply({ ephemeral: true });
 
   try {
-
-    // Fetch or create user from DB
-    let user = await User.findOne({ userId: interaction.user.id });
-
-    if (!user) {
-      user = await User.create({
-        userId: interaction.user.id,
-        username: interaction.user.username,
-        honorPoints: 0,
-        lastMessageDate: new Date(),
-        dailyPoints: 0,
-        lastMessagePointsReset: new Date(),
-        dailyMessageCount: 0,
-        lastDailyReset: new Date(0), // Set to epoch to allow first daily
-        dailyCheckinStreak: 0,
-        lastCheckinDate: new Date(0), // Set to epoch
-      });
-    } else {
-      // Update username in case it changed
-      if (user.username !== interaction.user.username) {
-        user.username = interaction.user.username;
+    // Block slash command usage - users must use the button in the daily-checkin channel
+    const dailyChannelId = process.env.DAILYCHECKING_CHANNEL_ID;
+    
+    let channelMention = 'the daily check-in channel';
+    if (dailyChannelId) {
+      try {
+        const channel = await interaction.client.channels.fetch(dailyChannelId);
+        if (channel) {
+          channelMention = `<#${dailyChannelId}>`;
+        }
+      } catch (error) {
+        // Channel not found or not accessible, use default text
       }
     }
 
-    const now = new Date();
-
-    // Check if already claimed today (compare dates without time, using UTC to avoid timezone issues)
-    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-
-    // Handle case where lastDailyReset might be null, invalid, or epoch (new users)
-    let lastResetDate: Date;
-    if (!user.lastDailyReset || user.lastDailyReset.getTime() === 0) {
-      // New user or reset to epoch - allow claim
-      lastResetDate = new Date(0);
-    } else {
-      lastResetDate = new Date(user.lastDailyReset);
-    }
-
-    const lastReset = new Date(Date.UTC(
-      lastResetDate.getUTCFullYear(),
-      lastResetDate.getUTCMonth(),
-      lastResetDate.getUTCDate()
-    ));
-
-    // Only block if lastDailyReset is today (and not epoch)
-    if (user.lastDailyReset && user.lastDailyReset.getTime() !== 0 && today.getTime() === lastReset.getTime()) {
-      // Already claimed today, calculate next reset time (tomorrow at midnight)
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const nextResetTimestamp = Math.floor(tomorrow.getTime() / 1000);
-
-      const embed = new EmbedBuilder()
-        .setColor(0x8b0000)
-        .setTitle('⏳ Daily Meditation Already Completed')
-        .setDescription(
-          `You have already claimed your daily reward today. Come back <t:${nextResetTimestamp}:R> to continue your cultivation journey!`
-        )
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
-      return;
-    }
-
-    // Generate weighted random honor points between 1 and 10
-    // Lower points have higher probability, higher points have lower probability
-    const pointsGained = getWeightedRandomDailyPoints();
-
-    // Update user
-    user.honorPoints += pointsGained;
-    user.lastDailyReset = now;
-    await user.save();
-
-    // Create embed response
     const embed = new EmbedBuilder()
       .setColor(0x8b0000)
-      .setTitle('🧘 Daily Meditation Complete')
+      .setTitle('⚠️ Please Use the Button')
       .setDescription(
-        `**${interaction.user.username}**, your cultivation session has ended.\n\n` +
-        `**Honor Points Gained:** ${pointsGained} ⚔️\n\n` +
-        `**Total Honor Points:** ${user.honorPoints} 🏆`
+        `**${interaction.user.username}**, please use the **"Claim Daily"** button in ${channelMention} to claim your daily reward.\n\n` +
+        `The slash command \`/daily\` is disabled. You must click the button in the daily check-in channel to claim your honor points.`
       )
       .setFooter({
-        text: 'Return tomorrow to claim your daily reward!',
+        text: 'Look for the "Claim Daily" button in the daily check-in channel!',
       })
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
+    return;
   } catch (error) {
     console.error('Error processing daily command:', error);
 
     const errorEmbed = new EmbedBuilder()
       .setColor(0xff0000)
       .setTitle('❌ Error')
-      .setDescription('An error occurred while processing your daily check-in. Please try again later.')
+      .setDescription('An error occurred. Please try using the button in the daily check-in channel instead.')
       .setTimestamp();
 
     await interaction.editReply({ embeds: [errorEmbed] });

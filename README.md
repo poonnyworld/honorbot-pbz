@@ -2,7 +2,7 @@
 
 <div align="center"></div>
 
-**A feature-rich Discord bot for managing an honor points economy system with real-time leaderboards, daily check-ins, and an admin dashboard**
+**A feature-rich Discord bot for managing an honor points economy system with button-based interactions, real-time leaderboards, daily check-ins, lucky draws, and an admin dashboard**
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
@@ -17,14 +17,17 @@
 
 ## Introduction
 
-**HonorBot PBZ** is a comprehensive Discord.js v14 bot built with TypeScript that gamifies server interaction through an honor points system. Inspired by the dark Wuxia theme of Phantom Blade Zero, it provides a complete economy system with automatic point earning, daily check-ins with streak bonuses, real-time leaderboards, and a powerful admin dashboard.
+**HonorBot PBZ** is a comprehensive Discord.js v14 bot built with TypeScript that gamifies server interaction through an honor points system. Inspired by the dark Wuxia theme of Phantom Blade Zero, it provides a complete economy system with automatic point earning, daily check-ins with weighted random rewards, gambling features, real-time leaderboards, and a powerful admin dashboard.
 
 ### Key Highlights
 
-- 🎮 **Interactive Slash Commands** - User-friendly Discord slash commands for all interactions
-- 📊 **Real-time Leaderboard** - Automatically updates every 3 minutes in a designated channel
+- 🔘 **Button-Based Interactions** - Primary interaction method using persistent buttons in dedicated channels
+- 📊 **Real-time Leaderboard** - Automatically updates every 3 minutes in Hall of Fame channel
 - 🎯 **Smart Point System** - Earn points through chat activity with daily limits and cooldowns
-- 🔥 **Daily Streak System** - Consecutive daily check-ins reward increasing multipliers (up to 2x)
+- 🎲 **Daily Rewards** - Claim daily honor points with weighted random distribution (1-10 points)
+- 🎰 **Gambling System** - Coin flip game with ephemeral results (private to player)
+- 🎁 **Lucky Draw** - Daily lucky draw feature with random rewards
+- 📖 **Instruction Guide** - Comprehensive guide channel showing how to use all features
 - 🌐 **Admin Dashboard** - Web-based admin panel for managing users and viewing statistics
 - 🔒 **Security First** - Comprehensive security audit with rate limiting, input validation, and XSS protection
 - 🐳 **Docker Ready** - Full Docker Compose support for easy deployment
@@ -33,12 +36,34 @@
 
 ## Features
 
-### 🎮 User Commands
+### 🔘 Button-Based Interactions (Primary Method)
 
-- **`/daily`** - Claim daily honor points with streak multiplier (100 base points, up to 200 with max streak)
-- **`/profile`** - View your honor points, rank, daily streak, daily message progress, today's message points, and join date
-- **`/leaderboard`** - Check the top 10 users privately (ephemeral response)
-- **`/help`** - View available commands and how to earn honor points
+The bot uses **persistent buttons** in dedicated channels as the primary interaction method. Slash commands are **admin-only** for backend management.
+
+**Available Buttons:**
+- **🧘 Daily Check-in** - Click button in daily-checkin channel to claim daily reward (1-10 random points)
+- **🪪 View Profile** - Click button in profile channel to view your honor points, rank, and statistics
+- **📊 Check Status** - Click button in status channel to check daily quota and cooldown information
+- **🎰 Coin Flip Game** - Click button in gamble channel to play (bet 1-5 points, win double or lose)
+  - Results are **ephemeral** (only visible to you) and dismissible
+- **🎁 Lucky Draw** - Click button in luckydraw channel for daily lucky draw rewards
+
+**Instruction Channel:**
+- **📖 Instruction Guide** - Comprehensive guide channel showing how to use all buttons and features
+- Auto-updates with channel mentions for easy navigation
+
+**Hall of Fame (Leaderboard):**
+- **🏆 Auto-updating Leaderboard** - View live leaderboard in Hall of Fame channel
+- Updates every 3 minutes automatically
+- Shows top 10 users with medal emojis (🥇🥈🥉)
+
+### 👑 Admin Commands (Slash Commands)
+
+**Note:** Regular user commands are blocked. Only administrators can use slash commands for backend management.
+
+- **`/backup export`** - Export entire database backup (Administrator only, sent via DM)
+- **`/backup import <file>`** - Import database backup from JSON file (Administrator only)
+- **`/reset database`** - Reset the entire database - WARNING: This will delete ALL user data! (Administrator only, requires confirmation)
 
 ### ⚡ Automatic Features
 
@@ -50,26 +75,31 @@
     - No reaction = Daily limit exceeded (no points earned)
   - 60-second cooldown between rewards
   - Daily limit: 5 messages per day (resets at midnight UTC)
-  - Use `/profile` to view your daily message progress and today's message points
-- **Real-time Leaderboard** - Auto-updates every 3 minutes in a designated channel
+  - Use Profile or Status buttons to view your daily message progress and today's message points
+- **Hall of Fame (Real-time Leaderboard)** - Auto-updates every 3 minutes in Hall of Fame channel
   - Shows top 10 users with rankings
   - Medal emojis for top 3 (🥇🥈🥉)
-- **Daily Streak System** - Streak multiplier for daily check-ins (enabled by default)
-  - Consecutive daily check-ins increase your streak bonus
-  - Day 1: 100 points (1x multiplier)
-  - Day 2: 110 points (1.1x multiplier)
-  - Day 10+: 200 points (2x multiplier, maximum)
-  - Missing a day resets the streak to Day 1
+  - No button needed - just view the channel
+- **Daily Reward System** - Claim daily honor points with weighted random distribution
+  - Earn 1-10 random honor points each day
+  - Weighted probability favors lower points (1 point: 30%, 2 points: 20%, etc.)
+  - Available once per day (resets at midnight UTC)
+  - Use the button in daily-checkin channel
+- **Lucky Draw System** - Daily lucky draw feature
+  - Click button in luckydraw channel
+  - Get random rewards daily
+  - Daily limit applies
 
 ### 👑 Admin Commands
 
 - **`/backup export`** - Export entire database backup (Administrator only, sent via DM)
 - **`/backup import <file>`** - Import database backup from JSON file (Administrator only)
+- **`/reset database`** - Reset the entire database - WARNING: This will delete ALL user data! (Administrator only, requires confirmation)
 
 ### 🌐 Web Dashboard
 
 - **Admin Panel** - Full-featured web interface at `http://localhost:3000`
-- **User Management** - Edit user points, reset streaks, search by username
+- **User Management** - Edit user points, search by username
 - **Leaderboard View** - View top 50 users with real-time updates
 - **Secure Authentication** - Protected with HTTP Basic Auth
 - **Modern UI** - Dark Wuxia-themed design with Tailwind CSS
@@ -143,8 +173,18 @@ GUILD_ID=your_discord_guild_id_here
 MONGO_URI=mongodb://localhost:27017/honorbot
 # For Docker Compose, use: mongodb://mongodb:27017/honorbot
 
-# Leaderboard Channel
-LEADERBOARD_CHANNEL_ID=your_leaderboard_channel_id_here
+# Button Channels (Required)
+DAILYCHECKING_CHANNEL_ID=your_daily_checkin_channel_id
+PROFILE_CHANNEL_ID=your_profile_channel_id
+STATUS_CHANNEL_ID=your_status_channel_id
+GAMBLE_CHANNEL_ID=your_gamble_channel_id
+INSTRUCTION_CHANNEL_ID=your_instruction_channel_id
+
+# Hall of Fame (Auto-updating Leaderboard)
+LEADERBOARD_CHANNEL_ID=your_hall_of_fame_channel_id
+
+# Lucky Draw (Optional)
+LUCKYDRAW_CHANNEL_ID=your_luckydraw_channel_id
 
 # Web Dashboard Configuration
 PORT=3000
@@ -199,8 +239,10 @@ npm run deploy
 ```
 [Deploy] Starting to refresh X application (/) commands...
 [Deploy] ✓ Successfully reloaded X application (/) commands.
-[Deploy] Registered commands: daily, profile, leaderboard, help, backup
+[Deploy] Registered commands: daily, profile, status, leaderboard, gamble, backup, reset
 ```
+
+**Note:** User commands (`/daily`, `/profile`, `/status`, `/leaderboard`, `/gamble`) are blocked for regular users. Only administrators can use them for backend management. Regular users should use buttons in dedicated channels instead.
 
 If you encounter any issues or need to clear commands:
 
@@ -234,6 +276,11 @@ Logged in as YourBotName#1234!
 Bot is ready! Use "npm run deploy" to register slash commands.
 [Dashboard] Admin Panel running on http://localhost:3000
 [LeaderboardService] Starting leaderboard service...
+[UserInteractionService] Initializing user interaction service...
+[UserInteractionService] ✓ profile button message sent successfully
+[UserInteractionService] ✓ status button message sent successfully
+[UserInteractionService] ✓ gamble button message sent successfully
+[UserInteractionService] ✓ instruction message sent successfully
 ```
 
 ---
@@ -242,41 +289,54 @@ Bot is ready! Use "npm run deploy" to register slash commands.
 
 This section provides visual examples and terminal outputs to help you understand how HonorBot PBZ works.
 
-### Discord Commands in Action
+### Button-Based Interactions
 
-#### `/daily` Command Example
+The bot uses **persistent buttons** in dedicated channels as the primary interaction method.
+
+#### Daily Check-in Button
 
 ![Daily Command - First Check-in](./demo-usage-examples/daily-command-first.png)
 
-![Daily Command - Streak Bonus](./demo-usage-examples/daily-command-streak.png)
+- Click "Claim Daily" button in daily-checkin channel
+- Earn 1-10 random honor points
+- Available once per day
 
-#### `/profile` Command Example
+#### Profile Button
 
 ![Profile Command](./demo-usage-examples/profile-command.png)
 
-#### `/leaderboard` Command Example
+- Click "View Profile" button in profile channel
+- View honor points, rank, daily progress, and statistics
+- Private view (ephemeral)
 
-![Leaderboard Command](./demo-usage-examples/leaderboard-command.png)
+#### Status Button
 
-#### `/help` Command Example
+- Click "Check Status" button in status channel
+- View daily quota, cooldown status, and check-in availability
+- Private view (ephemeral)
 
-![Help Command](./demo-usage-examples/help-command.png)
+#### Gamble Button
 
-### Real-time Leaderboard Channel
+- Click "Play Gamble" button in gamble channel
+- Fill modal with choice (heads/tails) and bet amount (1-5)
+- Results are **ephemeral** (only visible to you, dismissible)
+- Keeps the channel clean
+
+#### Hall of Fame (Auto-updating Leaderboard)
 
 ![Leaderboard Channel](./demo-usage-examples/leaderboard-channel.png)
 
-### Daily Reward Button (Persistent View)
+- View live leaderboard in Hall of Fame channel
+- Auto-updates every 3 minutes
+- Shows top 10 users with medal emojis (🥇🥈🥉)
+- No button needed - just view the channel
 
-If `DAILYCHECKING_CHANNEL_ID` is configured, the bot automatically creates a persistent embed with a "Claim Daily Reward" button in the specified channel. This provides an alternative way for users to claim their daily rewards without using the `/daily` command.
+#### Instruction Channel
 
-**Features:**
-- Persistent embed that stays in the channel
-- Interactive button for claiming daily rewards
-- Auto-recreates if deleted
-- Updates every 3 minutes (during leaderboard update cycle)
-
-**Setup:** Add `DAILYCHECKING_CHANNEL_ID=<your_channel_id>` to your `.env` file and restart the bot.
+- Comprehensive guide showing how to use all buttons
+- Explains all features and rules
+- Auto-updates with channel mentions
+- No button needed - just view the channel
 
 ### Admin Web Dashboard
 
@@ -322,20 +382,30 @@ If `DAILYCHECKING_CHANNEL_ID` is configured, the bot automatically creates a per
 
 #### Example 1: New User Journey
 
-1. **First Message:** User sends a message → Earns 3 points (logged to console)
-2. **Check Profile:** User runs `/profile` → Sees "Unranked" status
-3. **Daily Check-in:** User runs `/daily` → Earns 100 points, streak starts at 1 day
+1. **First Message:** User sends a message → Earns 3 points (bot reacts with 3️⃣)
+2. **Check Profile:** User clicks "View Profile" button in profile channel → Sees "Unranked" status, 3 honor points
+3. **Daily Check-in:** User clicks "Claim Daily" button in daily-checkin channel → Earns 5 points (random 1-10)
 4. **More Messages:** User chats → Earns more points, daily counter increments
-5. **Check Rankings:** User runs `/leaderboard` → Sees their position
+5. **Check Status:** User clicks "Check Status" button in status channel → Sees current points, daily quota, cooldown
+6. **Check Rankings:** User views Hall of Fame channel → Sees live leaderboard with top 10 users
 
-#### Example 2: Streak Building
+#### Example 2: Daily Rewards
 
-1. **Day 1:** `/daily` → 100 points (1x multiplier, streak: 1 day)
-2. **Day 2:** `/daily` → 110 points (1.1x multiplier, streak: 2 days) 🔥
-3. **Day 3:** `/daily` → 120 points (1.2x multiplier, streak: 3 days) 🔥
-4. **Day 10:** `/daily` → 200 points (2x multiplier, streak: 10 days) 🔥🔥
+1. **Day 1:** Click "Claim Daily" button → Earned 3 points (weighted random: 1-10 points)
+2. **Day 2:** Click "Claim Daily" button → Earned 7 points
+3. **Day 3:** Click "Claim Daily" button → Earned 2 points
+4. **Day 4:** Click "Claim Daily" button → Earned 10 points (rare high reward!)
 
-#### Example 3: Admin Backup Workflow
+#### Example 3: Gamble Feature
+
+1. User has 50 honor points
+2. Clicks "Play Gamble" button in gamble channel
+3. Fills modal: Choice = "heads", Bet Amount = 3
+4. Coin shows **Heads** → User wins! Gets 6 points (double the bet)
+5. Result shown as ephemeral message (only visible to user, dismissible)
+6. New balance: 53 points (50 - 3 + 6)
+
+#### Example 4: Admin Backup Workflow
 
 ![Backup Export](./demo-usage-examples/backup-export.png)
 
@@ -432,13 +502,18 @@ docker run -d \
 | `CLIENT_ID`                  | Discord application client ID                              | ✅ Yes   | -                       |
 | `GUILD_ID`                   | Discord server (guild) ID                                  | ✅ Yes   | -                       |
 | `MONGO_URI`                  | MongoDB connection string                                  | ✅ Yes   | -                       |
-| `LEADERBOARD_CHANNEL_ID`     | Channel ID for leaderboard updates                         | ✅ Yes   | -                       |
+| `LEADERBOARD_CHANNEL_ID`     | Channel ID for Hall of Fame (auto-updating leaderboard)   | ✅ Yes   | -                       |
+| `DAILYCHECKING_CHANNEL_ID`   | Channel ID for daily reward button                         | ✅ Yes   | -                       |
+| `PROFILE_CHANNEL_ID`         | Channel ID for profile button                              | ✅ Yes   | -                       |
+| `STATUS_CHANNEL_ID`          | Channel ID for status button                               | ✅ Yes   | -                       |
+| `GAMBLE_CHANNEL_ID`          | Channel ID for gamble button                               | ✅ Yes   | -                       |
+| `LUCKYDRAW_CHANNEL_ID`       | Channel ID for lucky draw button                           | ❌ No    | -                       |
+| `INSTRUCTION_CHANNEL_ID`     | Channel ID for instruction guide                          | ✅ Yes   | -                       |
 | `PORT`                       | Web dashboard port                                         | ❌ No    | `3000`                  |
 | `WEB_USER`                   | Admin panel username                                       | ❌ No    | `admin`                 |
 | `WEB_PASS`                   | Admin panel password (⚠️ **REQUIRED in production**)       | ❌ No    | `password` (dev only)   |
-| `ENABLE_STREAK`              | Enable daily streak multiplier (set to 'false' to disable) | ❌ No    | `true`                  |
+| `ENABLE_STREAK`              | Enable daily streak multiplier (currently not used)       | ❌ No    | `true`                  |
 | `DAILY_MESSAGE_POINTS_LIMIT` | Daily limit for message points                             | ❌ No    | `100`                   |
-| `DAILYCHECKING_CHANNEL_ID`   | Channel ID for daily reward button (persistent view)       | ❌ No    | -                       |
 | `ALLOWED_ORIGIN`             | CORS allowed origin for dashboard                          | ❌ No    | `http://localhost:3000` |
 | `NODE_ENV`                   | Environment mode (`production` or `development`)           | ❌ No    | `production`            |
 
@@ -446,22 +521,10 @@ docker run -d \
 
 #### `ENABLE_STREAK`
 
-Controls the daily streak multiplier system:
+**Note:** This feature flag is currently not used. The daily reward system uses weighted random distribution (1-10 points) instead of streak multipliers.
 
-- **Default:** `true` (enabled)
-- **Set to `false`** to disable streak bonuses (users always get 100 points)
-- **When enabled:** Users receive increasing multipliers:
-  - Day 1: 100 points (1.0x)
-  - Day 2: 110 points (1.1x)
-  - Day 3: 120 points (1.2x)
-  - Day 4: 130 points (1.3x)
-  - Day 5: 140 points (1.4x)
-  - Day 6: 150 points (1.5x)
-  - Day 7: 160 points (1.6x)
-  - Day 8: 170 points (1.7x)
-  - Day 9: 180 points (1.8x)
-  - Day 10+: 200 points (2.0x maximum)
-- **Streak Reset:** Missing a day resets to Day 1
+- **Default:** `true` (for future use)
+- The current daily reward system gives 1-10 random honor points with weighted probability
 
 #### `DAILY_MESSAGE_POINTS_LIMIT`
 
@@ -476,30 +539,37 @@ Controls how many points users can earn from messages per day:
   - `200` - Maximum for highly active communities
 - Resets automatically at midnight UTC
 
-#### `DAILYCHECKING_CHANNEL_ID` (Optional)
+#### Channel IDs for Button-Based Interactions
 
-Enables the **Daily Reward Button (Persistent View)** feature:
+The bot uses persistent buttons in dedicated channels. Each channel requires a channel ID in `.env`:
 
-- **Purpose:** Creates a persistent embed with a button in a designated channel for users to claim daily rewards
-- **Setup:**
-  1. Create a channel in your Discord server for daily check-ins (e.g., `#daily-checkin`)
-  2. Copy the channel ID
-  3. Add `DAILYCHECKING_CHANNEL_ID=<channel_id>` to your `.env` file
-  4. Restart the bot
-- **Behavior:**
-  - The bot automatically creates an embed with a "Claim Daily Reward" button in the specified channel
-  - Users can click the button to claim their daily reward (same as `/daily` command)
-  - The embed persists and updates automatically
-  - If the message is deleted, the bot recreates it on the next leaderboard update cycle (every 3 minutes)
-- **Requirements:**
-  - Bot must have `SendMessages`, `ViewChannel`, and `ManageMessages` permissions in the channel
-  - Channel must be accessible to users who want to claim rewards
+- **`DAILYCHECKING_CHANNEL_ID`** - Daily reward claim button
+- **`PROFILE_CHANNEL_ID`** - View profile button
+- **`STATUS_CHANNEL_ID`** - Check status button
+- **`GAMBLE_CHANNEL_ID`** - Coin flip game button (results are ephemeral)
+- **`LUCKYDRAW_CHANNEL_ID`** - Lucky draw button (optional)
+- **`INSTRUCTION_CHANNEL_ID`** - Instruction guide (comprehensive guide for all features)
+- **`LEADERBOARD_CHANNEL_ID`** - Hall of Fame (auto-updating leaderboard, no button needed)
+
+**Setup:**
+1. Create channels in your Discord server
+2. Copy channel IDs (right-click → Copy ID, requires Developer Mode)
+3. Add to `.env` file
+4. Restart the bot
+
+**Behavior:**
+- Buttons are persistent and auto-recreate if deleted
+- Button messages update every 3 minutes
+- All button interactions are ephemeral (private to user)
+- Gamble results are ephemeral and dismissible
 
 ---
 
 ## Usage
 
 ### Setting Up Discord Commands
+
+**Note:** User commands are blocked for regular users. Only administrators can use slash commands for backend management.
 
 #### Initial Deployment
 
@@ -528,6 +598,36 @@ npm run clear-commands
 
 Then redeploy with `npm run deploy`.
 
+### Using Button-Based Interactions
+
+The bot primarily uses **persistent buttons** in dedicated channels:
+
+1. **Create Required Channels:**
+   - Daily check-in channel
+   - Profile channel
+   - Status channel
+   - Gamble channel
+   - Instruction channel
+   - Hall of Fame channel (for leaderboard)
+
+2. **Add Channel IDs to `.env`:**
+   ```env
+   DAILYCHECKING_CHANNEL_ID=your_channel_id
+   PROFILE_CHANNEL_ID=your_channel_id
+   STATUS_CHANNEL_ID=your_channel_id
+   GAMBLE_CHANNEL_ID=your_channel_id
+   INSTRUCTION_CHANNEL_ID=your_channel_id
+   LEADERBOARD_CHANNEL_ID=your_channel_id
+   LUCKYDRAW_CHANNEL_ID=your_channel_id  # Optional
+   ```
+
+3. **Restart Bot:**
+   - Buttons will be created automatically in each channel
+   - Instruction channel will show comprehensive guide
+   - Buttons auto-update every 3 minutes
+
+See [`BUTTON_SETUP.md`](./BUTTON_SETUP.md) for detailed setup instructions.
+
 ### Accessing the Admin Dashboard
 
 1. **Start the bot** (see [Setup](#setup) section)
@@ -539,7 +639,6 @@ Then redeploy with `npm run deploy`.
    - View top 50 users in leaderboard
    - Search users by username
    - Edit user honor points
-   - Reset user streaks
    - Real-time updates (refreshes every 30 seconds)
 
 ### Backup and Restore
@@ -585,24 +684,28 @@ honorbot-pbz/
 │   ├── backup-export.png
 │   └── backup-import.png
 ├── src/
-│   ├── commands/              # Discord slash commands
+│   ├── commands/              # Discord slash commands (admin-only)
 │   │   ├── backup.ts          # Admin backup/restore commands
-│   │   ├── daily.ts           # Daily check-in command
-│   │   ├── help.ts            # Help command
-│   │   ├── leaderboard.ts     # Leaderboard command
-│   │   └── profile.ts         # User profile command
+│   │   ├── daily.ts           # Daily check-in command (blocked for users)
+│   │   ├── gamble.ts          # Coin flip gambling command (blocked for users)
+│   │   ├── leaderboard.ts     # Leaderboard command (blocked for users)
+│   │   ├── profile.ts          # User profile command (blocked for users)
+│   │   ├── reset.ts           # Admin database reset command
+│   │   └── status.ts          # User status command (blocked for users)
 │   ├── dashboard/             # Web admin panel
 │   │   ├── public/            # Static files (HTML, CSS, JS)
 │   │   │   └── index.html     # Admin dashboard UI
 │   │   └── server.ts          # Express server and API endpoints
 │   ├── events/                # Discord event handlers
-│   │   ├── interactionCreate.ts  # Handles slash command interactions
+│   │   ├── interactionCreate.ts  # Handles button and slash command interactions
 │   │   └── messageCreate.ts      # Handles message events (point earning)
 │   ├── models/                # Mongoose schemas
 │   │   └── User.ts            # User data model
 │   ├── services/              # Business logic services
 │   │   ├── BackupService.ts   # Database backup/restore logic
-│   │   └── LeaderboardService.ts  # Leaderboard update service
+│   │   ├── LeaderboardService.ts  # Leaderboard update service
+│   │   ├── LuckyDrawService.ts    # Lucky draw service
+│   │   └── UserInteractionService.ts  # Persistent button management
 │   ├── utils/                 # Utility functions
 │   │   └── connectDB.ts       # MongoDB connection handler
 │   ├── deploy-commands.ts     # Script to deploy slash commands
@@ -695,18 +798,28 @@ We take security seriously and will respond promptly to any security concerns.
 
 ### Common Issues
 
-#### Bot doesn't respond to commands
+#### Buttons not appearing or not working
 
-1. **Check if commands are deployed:**
-   ```bash
-   npm run deploy
-   ```
+1. **Check channel IDs in `.env`:**
+   - Verify all required channel IDs are set
+   - Ensure channel IDs are correct (17-19 digit numbers)
 2. **Verify bot has required permissions:**
    - View Channels
    - Send Messages
    - Embed Links
-   - Read Message History
-3. **Check bot is online** in your Discord server
+   - Manage Messages (for editing button messages)
+3. **Check bot logs:**
+   ```bash
+   docker-compose logs -f app | grep UserInteractionService
+   ```
+4. **Restart bot** to recreate buttons
+
+#### User commands blocked
+
+**This is expected behavior.** User commands (`/daily`, `/profile`, `/status`, `/leaderboard`, `/gamble`) are blocked for regular users. Only administrators can use them.
+
+- **Regular users:** Use buttons in dedicated channels
+- **Admins:** Can use slash commands for testing/management
 
 #### Leaderboard not updating
 

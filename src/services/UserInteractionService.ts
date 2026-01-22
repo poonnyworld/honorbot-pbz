@@ -1,0 +1,437 @@
+import { Client, TextChannel, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Message } from 'discord.js';
+
+export class UserInteractionService {
+  private client: Client | null = null;
+  private buttonMessageIds: Map<string, string> = new Map(); // channelId -> messageId
+
+  /**
+   * Start the user interaction service
+   */
+  public start(client: Client): void {
+    this.client = client;
+    console.log('[UserInteractionService] Initializing user interaction service...');
+
+    // Wait for client to be ready before initial setup
+    if (client.isReady()) {
+      this.setupAllButtons(client).catch((error) => {
+        console.error('[UserInteractionService] ❌ Error in initial button setup:', error);
+      });
+    } else {
+      client.once('ready', () => {
+        this.setupAllButtons(client).catch((error) => {
+          console.error('[UserInteractionService] ❌ Error in initial button setup:', error);
+        });
+      });
+    }
+
+    // Setup buttons every 3 minutes (same as leaderboard update)
+    setInterval(() => {
+      if (client.isReady()) {
+        this.setupAllButtons(client).catch((error) => {
+          console.error('[UserInteractionService] ❌ Error in periodic button setup:', error);
+        });
+      }
+    }, 3 * 60 * 1000);
+  }
+
+  /**
+   * Setup all persistent buttons in their respective channels
+   */
+  private async setupAllButtons(client: Client): Promise<void> {
+    console.log('[UserInteractionService] Setting up all persistent buttons...');
+
+    // Setup Profile button
+    await this.ensureButton(
+      client,
+      process.env.PROFILE_CHANNEL_ID,
+      'profile',
+      '🪪 View Profile',
+      'Click the button below to view your honor points, rank, and statistics!',
+      'profile_button',
+      'View Profile',
+      ButtonStyle.Primary,
+      '🪪'
+    );
+
+    // Setup Status button
+    await this.ensureButton(
+      client,
+      process.env.STATUS_CHANNEL_ID,
+      'status',
+      '📊 Check Status',
+      'Click the button below to check your honor points status, daily quota, and cooldown information!',
+      'status_button',
+      'Check Status',
+      ButtonStyle.Secondary,
+      '📊'
+    );
+
+    // Setup Gamble button
+    await this.ensureButton(
+      client,
+      process.env.GAMBLE_CHANNEL_ID,
+      'gamble',
+      '🎰 Coin Flip Game',
+      'Click the button below to play coin flip with your honor points!\n\n**Rules:**\n• Bet 1-5 points\n• Win: Double your bet\n• Lose: Lose your bet',
+      'gamble_button',
+      'Play Gamble',
+      ButtonStyle.Danger,
+      '🎰'
+    );
+
+    // Setup Instruction channel (replaces help channel)
+    await this.setupInstructionChannel(client);
+  }
+
+  /**
+   * Ensure a button exists in a channel
+   */
+  private async ensureButton(
+    client: Client,
+    channelId: string | undefined,
+    buttonType: string,
+    title: string,
+    description: string,
+    customId: string,
+    buttonLabel: string,
+    buttonStyle: ButtonStyle,
+    emoji: string
+  ): Promise<void> {
+    if (!channelId) {
+      console.log(`[UserInteractionService] ${buttonType.toUpperCase()}_CHANNEL_ID not set, skipping ${buttonType} button setup.`);
+      return;
+    }
+
+    // Validate channel ID
+    if (!/^\d{17,19}$/.test(channelId)) {
+      console.error(`[UserInteractionService] ❌ Invalid ${buttonType.toUpperCase()}_CHANNEL_ID format: "${channelId}"`);
+      return;
+    }
+
+    if (!client.isReady()) {
+      console.warn(`[UserInteractionService] Client is not ready yet, skipping ${buttonType} button setup.`);
+      return;
+    }
+
+    try {
+      const channel = await client.channels.fetch(channelId);
+
+      if (!channel || !channel.isTextBased()) {
+        console.error(`[UserInteractionService] ❌ Channel ${channelId} not found or not text-based.`);
+        return;
+      }
+
+      const textChannel = channel as TextChannel;
+
+      // Check permissions
+      const botMember = await textChannel.guild.members.fetch(client.user!.id);
+      const permissions = textChannel.permissionsFor(botMember);
+
+      if (!permissions || !permissions.has('SendMessages') || !permissions.has('ViewChannel')) {
+        console.error(`[UserInteractionService] ❌ Bot lacks required permissions in ${buttonType} channel ${channelId}.`);
+        return;
+      }
+
+      // Create the embed
+      const embed = new EmbedBuilder()
+        .setColor(0x8b0000)
+        .setTitle(title)
+        .setDescription(description)
+        .setFooter({
+          text: 'Use the button below to interact!',
+        })
+        .setTimestamp();
+
+      // Create the button
+      const button = new ButtonBuilder()
+        .setCustomId(customId)
+        .setLabel(buttonLabel)
+        .setStyle(buttonStyle)
+        .setEmoji(emoji);
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
+
+      // Try to find existing button message
+      let buttonMessage: Message | null = null;
+      const storedMessageId = this.buttonMessageIds.get(channelId);
+
+      if (storedMessageId) {
+        try {
+          const storedMessage = await textChannel.messages.fetch(storedMessageId);
+          if (storedMessage && storedMessage.author.id === client.user?.id) {
+            buttonMessage = storedMessage;
+            console.log(`[UserInteractionService] ✓ Found existing ${buttonType} button message: ${storedMessageId}`);
+          } else {
+            this.buttonMessageIds.delete(channelId);
+          }
+        } catch (fetchError: any) {
+          if (fetchError.code === 10008 || fetchError.code === 404) {
+            console.log(`[UserInteractionService] Stored ${buttonType} button message ID ${storedMessageId} was deleted, clearing...`);
+            this.buttonMessageIds.delete(channelId);
+          }
+        }
+      }
+
+      // If not found, search for it
+      if (!buttonMessage) {
+        console.log(`[UserInteractionService] Searching for existing ${buttonType} button message...`);
+        const messages = await textChannel.messages.fetch({ limit: 50 });
+
+        for (const [id, msg] of messages) {
+          if (msg.author.id === client.user?.id && msg.components.length > 0) {
+            // Check if this message has our button
+            const hasButton = msg.components.some(row => {
+              const components = (row as any).components;
+              if (components && Array.isArray(components)) {
+                return components.some((component: any) => {
+                  return component.type === 2 && component.customId === customId;
+                });
+              }
+              return false;
+            });
+            if (hasButton) {
+              buttonMessage = msg;
+              this.buttonMessageIds.set(channelId, id);
+              console.log(`[UserInteractionService] ✓ Found ${buttonType} button message: ${id}`);
+              break;
+            }
+          }
+        }
+      }
+
+      if (buttonMessage) {
+        // Edit existing message
+        try {
+          await buttonMessage.edit({ embeds: [embed], components: [row] });
+          console.log(`[UserInteractionService] ✓ ${buttonType} button message updated successfully`);
+        } catch (error) {
+          console.error(`[UserInteractionService] ❌ Error editing ${buttonType} button message:`, error);
+          this.buttonMessageIds.delete(channelId);
+          buttonMessage = null;
+        }
+      }
+
+      if (!buttonMessage) {
+        // Send new message
+        try {
+          const newMessage = await textChannel.send({ embeds: [embed], components: [row] });
+          this.buttonMessageIds.set(channelId, newMessage.id);
+          console.log(`[UserInteractionService] ✓ ${buttonType} button message sent successfully`);
+          console.log(`[UserInteractionService] Stored ${buttonType} button message ID: ${newMessage.id}`);
+        } catch (error) {
+          console.error(`[UserInteractionService] ❌ Error sending ${buttonType} button message:`, error);
+        }
+      }
+    } catch (error) {
+      console.error(`[UserInteractionService] ❌ Critical error setting up ${buttonType} button:`, error);
+      if (error instanceof Error) {
+        console.error(`[UserInteractionService] Error message: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Setup Instruction channel with guide on how to use all buttons
+   */
+  private async setupInstructionChannel(client: Client): Promise<void> {
+    const channelId = process.env.INSTRUCTION_CHANNEL_ID;
+
+    if (!channelId) {
+      console.log('[UserInteractionService] INSTRUCTION_CHANNEL_ID not set, skipping instruction channel setup.');
+      return;
+    }
+
+    // Validate channel ID
+    if (!/^\d{17,19}$/.test(channelId)) {
+      console.error(`[UserInteractionService] ❌ Invalid INSTRUCTION_CHANNEL_ID format: "${channelId}"`);
+      return;
+    }
+
+    if (!client.isReady()) {
+      console.warn('[UserInteractionService] Client is not ready yet, skipping instruction channel setup.');
+      return;
+    }
+
+    try {
+      const channel = await client.channels.fetch(channelId);
+
+      if (!channel || !channel.isTextBased()) {
+        console.error(`[UserInteractionService] ❌ Channel ${channelId} not found or not text-based.`);
+        return;
+      }
+
+      const textChannel = channel as TextChannel;
+
+      // Check permissions
+      const botMember = await textChannel.guild.members.fetch(client.user!.id);
+      const permissions = textChannel.permissionsFor(botMember);
+
+      if (!permissions || !permissions.has('SendMessages') || !permissions.has('ViewChannel')) {
+        console.error(`[UserInteractionService] ❌ Bot lacks required permissions in instruction channel ${channelId}.`);
+        return;
+      }
+
+      // Get channel mentions for buttons
+      const profileChannelMention = process.env.PROFILE_CHANNEL_ID ? `<#${process.env.PROFILE_CHANNEL_ID}>` : 'Profile channel';
+      const statusChannelMention = process.env.STATUS_CHANNEL_ID ? `<#${process.env.STATUS_CHANNEL_ID}>` : 'Status channel';
+      const dailyChannelMention = process.env.DAILYCHECKING_CHANNEL_ID ? `<#${process.env.DAILYCHECKING_CHANNEL_ID}>` : 'Daily check-in channel';
+      const gambleChannelMention = process.env.GAMBLE_CHANNEL_ID ? `<#${process.env.GAMBLE_CHANNEL_ID}>` : 'Gamble channel';
+      const hallOfFameMention = process.env.LEADERBOARD_CHANNEL_ID ? `<#${process.env.LEADERBOARD_CHANNEL_ID}>` : 'Hall of Fame channel';
+
+      // Create comprehensive instruction embed
+      const embed = new EmbedBuilder()
+        .setColor(0x8b0000)
+        .setTitle('📖 Instruction Guide')
+        .setDescription('**Welcome to HonorBot PBZ!**\n\nLearn how to use all the features and earn honor points in the Jianghu.')
+        .addFields(
+          {
+            name: '🧘 Daily Check-in',
+            value: `Go to ${dailyChannelMention} and click the **"Claim Daily"** button to claim your daily honor points reward!\n\n` +
+                   `• Earn **1-10 random honor points** each day\n` +
+                   `• Available once per day (resets at midnight UTC)\n` +
+                   `• Weighted probability favors lower points`,
+            inline: false,
+          },
+          {
+            name: '💬 Chat Activity - Message Points System',
+            value: `Earn **1-5 random honor points** per message (max **5 times/day**)\n\n` +
+                   `**Reaction Feedback:**\n` +
+                   `• Number emoji (1️⃣-5️⃣) = Points earned from that message\n` +
+                   `• ⏳ = Cooldown active (wait 60 seconds between rewards)\n` +
+                   `• ✅ = Daily limit reached (appears on the 5th message)\n` +
+                   `• No reaction = Daily limit exceeded (no points earned)\n\n` +
+                   `**Rules:**\n` +
+                   `• 60-second cooldown between rewards\n` +
+                   `• Daily limit: **5 messages** per day (resets at midnight UTC)\n` +
+                   `• Bot messages are ignored`,
+            inline: false,
+          },
+          {
+            name: '🪪 View Profile',
+            value: `Go to ${profileChannelMention} and click the **"View Profile"** button to see:\n\n` +
+                   `• Your honor points and global rank\n` +
+                   `• Daily message progress (Messages: X/5)\n` +
+                   `• Today's message points earned\n` +
+                   `• Daily check-in status\n` +
+                   `• Join date`,
+            inline: false,
+          },
+          {
+            name: '📊 Check Status',
+            value: `Go to ${statusChannelMention} and click the **"Check Status"** button to see:\n\n` +
+                   `• Current honor points\n` +
+                   `• Daily message quota (X/5)\n` +
+                   `• Cooldown status (time remaining)\n` +
+                   `• Daily check-in availability`,
+            inline: false,
+          },
+          {
+            name: '🏆 Hall of Fame (Leaderboard)',
+            value: `Check ${hallOfFameMention} to see the **live leaderboard** that updates every 3 minutes!\n\n` +
+                   `• Shows top 10 warriors with rankings\n` +
+                   `• Medal emojis for top 3 (🥇🥈🥉)\n` +
+                   `• Auto-updates every 3 minutes`,
+            inline: false,
+          },
+          {
+            name: '🎰 Coin Flip Game',
+            value: `Go to ${gambleChannelMention} and click the **"Play Gamble"** button to play!\n\n` +
+                   `**How to Play:**\n` +
+                   `1. Click the button\n` +
+                   `2. Choose "heads" or "tails"\n` +
+                   `3. Enter bet amount (1-5 points)\n` +
+                   `4. Submit and see the result!\n\n` +
+                   `**Rules:**\n` +
+                   `• Bet 1-5 honor points\n` +
+                   `• Win: Double your bet (get bet amount × 2)\n` +
+                   `• Lose: Lose your bet amount\n` +
+                   `• Daily limit: 5 plays per day`,
+            inline: false,
+          }
+        )
+        .setFooter({
+          text: 'Use the buttons in each channel to interact with the bot!',
+        })
+        .setTimestamp();
+
+      // Try to find existing instruction message
+      let instructionMessage: Message | null = null;
+      const storedMessageId = this.buttonMessageIds.get(channelId);
+
+      if (storedMessageId) {
+        try {
+          const storedMessage = await textChannel.messages.fetch(storedMessageId);
+          if (storedMessage && storedMessage.author.id === client.user?.id) {
+            instructionMessage = storedMessage;
+            console.log(`[UserInteractionService] ✓ Found existing instruction message: ${storedMessageId}`);
+          } else {
+            this.buttonMessageIds.delete(channelId);
+          }
+        } catch (fetchError: any) {
+          if (fetchError.code === 10008 || fetchError.code === 404) {
+            console.log(`[UserInteractionService] Stored instruction message ID ${storedMessageId} was deleted, clearing...`);
+            this.buttonMessageIds.delete(channelId);
+          }
+        }
+      }
+
+      // If not found, search for it
+      if (!instructionMessage) {
+        console.log('[UserInteractionService] Searching for existing instruction message...');
+        const messages = await textChannel.messages.fetch({ limit: 50 });
+
+        for (const [id, msg] of messages) {
+          if (msg.author.id === client.user?.id && msg.embeds.length > 0) {
+            // Check if this message has our instruction embed (by title)
+            const hasInstructionEmbed = msg.embeds.some(embed => 
+              embed.title?.includes('Instruction Guide') || embed.title?.includes('📖')
+            );
+            if (hasInstructionEmbed) {
+              instructionMessage = msg;
+              this.buttonMessageIds.set(channelId, id);
+              console.log(`[UserInteractionService] ✓ Found instruction message: ${id}`);
+              break;
+            }
+          }
+        }
+      }
+
+      if (instructionMessage) {
+        // Edit existing message
+        try {
+          await instructionMessage.edit({ embeds: [embed] });
+          console.log('[UserInteractionService] ✓ Instruction message updated successfully');
+        } catch (error) {
+          console.error('[UserInteractionService] ❌ Error editing instruction message:', error);
+          this.buttonMessageIds.delete(channelId);
+          instructionMessage = null;
+        }
+      }
+
+      if (!instructionMessage) {
+        // Send new message
+        try {
+          const newMessage = await textChannel.send({ embeds: [embed] });
+          this.buttonMessageIds.set(channelId, newMessage.id);
+          console.log('[UserInteractionService] ✓ Instruction message sent successfully');
+          console.log(`[UserInteractionService] Stored instruction message ID: ${newMessage.id}`);
+        } catch (error) {
+          console.error('[UserInteractionService] ❌ Error sending instruction message:', error);
+        }
+      }
+    } catch (error) {
+      console.error('[UserInteractionService] ❌ Critical error setting up instruction channel:', error);
+      if (error instanceof Error) {
+        console.error('[UserInteractionService] Error message:', error.message);
+      }
+    }
+  }
+
+  /**
+   * Stop the service
+   */
+  public stop(): void {
+    console.log('[UserInteractionService] Stopping user interaction service...');
+    this.buttonMessageIds.clear();
+  }
+}

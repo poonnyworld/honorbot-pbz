@@ -45,11 +45,27 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const enableStreak = process.env.ENABLE_STREAK === undefined || process.env.ENABLE_STREAK?.toLowerCase() === 'true';
 
     // Fetch or create user from DB
-    let user = await User.findOne({ userId: interaction.user.id });
+    // Use findOneAndUpdate with no-op to force fresh read from database
+    // This bypasses any Mongoose query caching and ensures we get the latest data
+    let user = await User.findOneAndUpdate(
+      { userId: interaction.user.id },
+      { $setOnInsert: {} }, // No-op update that doesn't change anything (only sets on insert, which won't happen)
+      { 
+        new: true, // Return updated document
+        upsert: false, // Don't create if not exists (we handle that below)
+        lean: true, // Return plain object (no Mongoose document caching)
+        runValidators: false, // Skip validation for no-op
+      }
+    );
+    
+    // Debug log to verify we're getting fresh data
+    if (user) {
+      console.log(`[Profile] Fetched user ${user.username} (${user.userId}): ${user.honorPoints} points, ${user.dailyMessageCount} messages today`);
+    }
 
     if (!user) {
       // User doesn't exist - create default profile
-      user = await User.create({
+      const newUser = await User.create({
         userId: interaction.user.id,
         username: interaction.user.username,
         honorPoints: 0,
@@ -59,6 +75,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         dailyCheckinStreak: 0,
         lastCheckinDate: new Date(0),
       });
+      // Convert to plain object for consistency (use type assertion)
+      user = newUser.toObject() as any;
 
       // Build fields array conditionally
       const fields = [
@@ -97,10 +115,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    // Update username if it changed
+    // Update username if it changed (need to fetch as document for saving)
     if (user.username !== interaction.user.username) {
-      user.username = interaction.user.username;
-      await user.save();
+      const userDoc = await User.findOne({ userId: interaction.user.id });
+      if (userDoc) {
+        userDoc.username = interaction.user.username;
+        await userDoc.save();
+        // Update local user object
+        user.username = interaction.user.username;
+      }
     }
 
     // Calculate rank: count users with more honorPoints
