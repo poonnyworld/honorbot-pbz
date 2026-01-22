@@ -2,7 +2,7 @@
 
 <div align="center"></div>
 
-**A feature-rich Discord bot for managing an honor points economy system with button-based interactions, real-time leaderboards, daily check-ins, lucky draws, and an admin dashboard**
+**A feature-rich Discord bot for managing an honor points economy system with button-based interactions, real-time leaderboards, daily check-ins, gambling features, and an admin dashboard**
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
@@ -17,7 +17,7 @@
 
 ## Introduction
 
-**HonorBot PBZ** is a comprehensive Discord.js v14 bot built with TypeScript that gamifies server interaction through an honor points system. Inspired by the dark Wuxia theme of Phantom Blade Zero, it provides a complete economy system with automatic point earning, daily check-ins with weighted random rewards, gambling features, real-time leaderboards, and a powerful admin dashboard.
+**HonorBot PBZ** is a comprehensive Discord.js v14 bot built with TypeScript that gamifies server interaction through an honor points system. Inspired by the dark Wuxia theme of Phantom Blade Zero, it provides a complete economy system with automatic point earning, daily check-ins with weighted random rewards, coin flip gambling game, real-time leaderboards, and a powerful admin dashboard.
 
 ### Key Highlights
 
@@ -26,7 +26,7 @@
 - 🎯 **Smart Point System** - Earn points through chat activity with daily limits and cooldowns
 - 🎲 **Daily Rewards** - Claim daily honor points with weighted random distribution (1-10 points)
 - 🎰 **Gambling System** - Coin flip game with ephemeral results (private to player)
-- 🎁 **Lucky Draw** - Daily lucky draw feature with random rewards
+- 🎁 **Lucky Draw** - Daily lucky draw feature with random rewards (optional, requires LUCKYDRAW_CHANNEL_ID)
 - 📖 **Instruction Guide** - Comprehensive guide channel showing how to use all features
 - 🌐 **Admin Dashboard** - Web-based admin panel for managing users and viewing statistics
 - 🔒 **Security First** - Comprehensive security audit with rate limiting, input validation, and XSS protection
@@ -46,7 +46,12 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 - **📊 Check Status** - Click button in status channel to check daily quota and cooldown information
 - **🎰 Coin Flip Game** - Click button in gamble channel to play (bet 1-5 points, win double or lose)
   - Results are **ephemeral** (only visible to you) and dismissible
-- **🎁 Lucky Draw** - Click button in luckydraw channel for daily lucky draw rewards
+  - Daily limit: 5 plays per day
+- **🎁 Lucky Draw** - Click button in luckydraw channel for daily lucky draw rewards (optional feature)
+  - Requires `LUCKYDRAW_CHANNEL_ID` to be set in `.env`
+  - 60% chance to win +5 points, 40% chance to lose -5 points
+  - Daily limit: 5 plays per day
+  - Requires at least 5 honor points to play
 
 **Instruction Channel:**
 - **📖 Instruction Guide** - Comprehensive guide channel showing how to use all buttons and features
@@ -85,10 +90,12 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
   - Weighted probability favors lower points (1 point: 30%, 2 points: 20%, etc.)
   - Available once per day (resets at midnight UTC)
   - Use the button in daily-checkin channel
-- **Lucky Draw System** - Daily lucky draw feature
-  - Click button in luckydraw channel
-  - Get random rewards daily
-  - Daily limit applies
+- **Lucky Draw System** - Daily lucky draw feature (optional)
+  - Click button in luckydraw channel (requires `LUCKYDRAW_CHANNEL_ID` in `.env`)
+  - 60% chance to win +5 points, 40% chance to lose -5 points
+  - Daily limit: 5 plays per day (resets at midnight UTC)
+  - Requires at least 5 honor points to play
+  - If `LUCKYDRAW_CHANNEL_ID` is not set, this feature will not be available
 
 ### 👑 Admin Commands
 
@@ -404,6 +411,7 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 4. Coin shows **Heads** → User wins! Gets 6 points (double the bet)
 5. Result shown as ephemeral message (only visible to user, dismissible)
 6. New balance: 53 points (50 - 3 + 6)
+7. Daily limit: Can play up to 5 times per day
 
 #### Example 4: Admin Backup Workflow
 
@@ -507,7 +515,7 @@ docker run -d \
 | `PROFILE_CHANNEL_ID`         | Channel ID for profile button                              | ✅ Yes   | -                       |
 | `STATUS_CHANNEL_ID`          | Channel ID for status button                               | ✅ Yes   | -                       |
 | `GAMBLE_CHANNEL_ID`          | Channel ID for gamble button                               | ✅ Yes   | -                       |
-| `LUCKYDRAW_CHANNEL_ID`       | Channel ID for lucky draw button                           | ❌ No    | -                       |
+| `LUCKYDRAW_CHANNEL_ID`       | Channel ID for lucky draw button (optional feature)        | ❌ No    | -                       |
 | `INSTRUCTION_CHANNEL_ID`     | Channel ID for instruction guide                          | ✅ Yes   | -                       |
 | `PORT`                       | Web dashboard port                                         | ❌ No    | `3000`                  |
 | `WEB_USER`                   | Admin panel username                                       | ❌ No    | `admin`                 |
@@ -521,10 +529,11 @@ docker run -d \
 
 #### `ENABLE_STREAK`
 
-**Note:** This feature flag is currently not used. The daily reward system uses weighted random distribution (1-10 points) instead of streak multipliers.
+**⚠️ Note:** This feature flag is **currently not implemented**. The daily reward system uses weighted random distribution (1-10 points) instead of streak multipliers. This flag is reserved for future use.
 
-- **Default:** `true` (for future use)
-- The current daily reward system gives 1-10 random honor points with weighted probability
+- **Default:** `true` (reserved for future implementation)
+- **Current behavior:** The daily reward system gives 1-10 random honor points with weighted probability (no streak bonuses)
+- **Future:** When implemented, streak multipliers may be added to reward consecutive daily check-ins
 
 #### `DAILY_MESSAGE_POINTS_LIMIT`
 
@@ -547,7 +556,7 @@ The bot uses persistent buttons in dedicated channels. Each channel requires a c
 - **`PROFILE_CHANNEL_ID`** - View profile button
 - **`STATUS_CHANNEL_ID`** - Check status button
 - **`GAMBLE_CHANNEL_ID`** - Coin flip game button (results are ephemeral)
-- **`LUCKYDRAW_CHANNEL_ID`** - Lucky draw button (optional)
+- **`LUCKYDRAW_CHANNEL_ID`** - Lucky draw button (optional - feature disabled if not set)
 - **`INSTRUCTION_CHANNEL_ID`** - Instruction guide (comprehensive guide for all features)
 - **`LEADERBOARD_CHANNEL_ID`** - Hall of Fame (auto-updating leaderboard, no button needed)
 
@@ -562,6 +571,11 @@ The bot uses persistent buttons in dedicated channels. Each channel requires a c
 - Button messages update every 3 minutes
 - All button interactions are ephemeral (private to user)
 - Gamble results are ephemeral and dismissible
+
+**Optional Features:**
+- **Lucky Draw** - Only available if `LUCKYDRAW_CHANNEL_ID` is set in `.env`
+  - If not set, the lucky draw service will not start and the feature will be unavailable
+  - Check bot logs for: `[LuckyDrawService] ⚠️ LUCKYDRAW_CHANNEL_ID not set. Lucky draw service will not start.`
 
 ---
 
@@ -609,6 +623,7 @@ The bot primarily uses **persistent buttons** in dedicated channels:
    - Gamble channel
    - Instruction channel
    - Hall of Fame channel (for leaderboard)
+   - Lucky Draw channel (optional - only if you want to enable lucky draw feature)
 
 2. **Add Channel IDs to `.env`:**
    ```env
@@ -618,7 +633,7 @@ The bot primarily uses **persistent buttons** in dedicated channels:
    GAMBLE_CHANNEL_ID=your_channel_id
    INSTRUCTION_CHANNEL_ID=your_channel_id
    LEADERBOARD_CHANNEL_ID=your_channel_id
-   LUCKYDRAW_CHANNEL_ID=your_channel_id  # Optional
+   LUCKYDRAW_CHANNEL_ID=your_channel_id  # Optional - Only set this if you want to enable the Lucky Draw feature
    ```
 
 3. **Restart Bot:**
