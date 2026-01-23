@@ -294,7 +294,7 @@ Bot is ready! Use "npm run deploy" to register slash commands.
 
 ## Demo & Usage Examples
 
-This section provides visual examples and terminal outputs to help you understand how HonorBot PBZ works.
+This section provides visual examples to help you understand how HonorBot PBZ works.
 
 ### Button-Based Interactions
 
@@ -359,65 +359,17 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 
 ![Dashboard Search](./demo-usage-examples/admin-dashboard-search.png)
 
-### Terminal Output Examples
-
-#### Bot Startup Logs
-
-![Bot Startup Terminal](./demo-usage-examples/terminal-bot-startup.png)
-
-#### Command Deployment Logs
-
-![Command Deployment Terminal](./demo-usage-examples/terminal-command-deployment.png)
-
-#### Message Points Logging
-
-![Message Points Logging Terminal](./demo-usage-examples/terminal-message-points.png)
-
-#### Leaderboard Update Logs
-
-![Leaderboard Update Terminal](./demo-usage-examples/terminal-leaderboard-update.png)
-
-#### Bot Running (Continuous Logs)
-
-![Bot Running Terminal](./demo-usage-examples/terminal-bot-running.png)
-
-#### Error Handling Examples
-
-![Error Logging Terminal](./demo-usage-examples/terminal-error-handling.png)
-
-### Usage Workflow Examples
-
-#### Example 1: New User Journey
-
-1. **First Message:** User sends a message → Earns 3 points (bot reacts with 3️⃣)
-2. **Check Profile:** User clicks "View Profile" button in profile channel → Sees "Unranked" status, 3 honor points
-3. **Daily Check-in:** User clicks "Claim Daily" button in daily-checkin channel → Earns 5 points (random 1-10)
-4. **More Messages:** User chats → Earns more points, daily counter increments
-5. **Check Status:** User clicks "Check Status" button in status channel → Sees current points, daily quota, cooldown
-6. **Check Rankings:** User views Hall of Fame channel → Sees live leaderboard with top 10 users
-
-#### Example 2: Daily Rewards
-
-1. **Day 1:** Click "Claim Daily" button → Earned 3 points (weighted random: 1-10 points)
-2. **Day 2:** Click "Claim Daily" button → Earned 7 points
-3. **Day 3:** Click "Claim Daily" button → Earned 2 points
-4. **Day 4:** Click "Claim Daily" button → Earned 10 points (rare high reward!)
-
-#### Example 3: Gamble Feature
-
-1. User has 50 honor points
-2. Clicks "Play Gamble" button in gamble channel
-3. Fills modal: Choice = "heads", Bet Amount = 3
-4. Coin shows **Heads** → User wins! Gets 6 points (double the bet)
-5. Result shown as ephemeral message (only visible to user, dismissible)
-6. New balance: 53 points (50 - 3 + 6)
-7. Daily limit: Can play up to 5 times per day
-
-#### Example 4: Admin Backup Workflow
+### Admin Backup Workflow
 
 ![Backup Export](./demo-usage-examples/backup-export.png)
 
 ![Backup Import](./demo-usage-examples/backup-import.png)
+
+---
+
+### Coming Soon
+
+_New demo content will be added here soon._
 
 ---
 
@@ -682,20 +634,11 @@ See [`BUTTON_SETUP.md`](./BUTTON_SETUP.md) for detailed setup instructions.
 honorbot-pbz/
 ├── demo-usage-examples/    # Screenshots and demo images (add your images here)
 │   ├── daily-command-first.png
-│   ├── daily-command-streak.png
 │   ├── profile-command.png
-│   ├── leaderboard-command.png
-│   ├── help-command.png
 │   ├── leaderboard-channel.png
 │   ├── admin-dashboard-overview.png
 │   ├── admin-edit-modal.png
 │   ├── admin-dashboard-search.png
-│   ├── terminal-bot-startup.png
-│   ├── terminal-command-deployment.png
-│   ├── terminal-message-points.png
-│   ├── terminal-leaderboard-update.png
-│   ├── terminal-bot-running.png
-│   ├── terminal-error-handling.png
 │   ├── backup-export.png
 │   └── backup-import.png
 ├── src/
