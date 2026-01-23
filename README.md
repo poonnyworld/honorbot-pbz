@@ -302,7 +302,9 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 
 #### Daily Check-in Button
 
-![Daily Command - First Check-in](./demo-usage-examples/daily-command-first.png)
+![Daily Checkin - Button Panel](./demo-usage-examples/daily-button-panel.png)
+
+![Daily Checkin - Feedback Messages](./demo-usage-examples/daily-feedback-msg.png)
 
 - Click "Claim Daily" button in daily-checkin channel
 - Earn 1-10 random honor points
@@ -310,7 +312,9 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 
 #### Profile Button
 
-![Profile Command](./demo-usage-examples/profile-command.png)
+![Profile Button Panel](./demo-usage-examples/profile-button-panel.png)
+
+![Profile Feedback Messages](./demo-usage-examples/profile-feedback-msg.png)
 
 - Click "View Profile" button in profile channel
 - View honor points, rank, daily progress, and statistics
@@ -318,20 +322,42 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 
 #### Status Button
 
+![Status Button Panel](./demo-usage-examples/status-button-panel.png)
+
+![Status Feedback Messages](./demo-usage-examples/status-feedback-msg.png)
+
 - Click "Check Status" button in status channel
 - View daily quota, cooldown status, and check-in availability
 - Private view (ephemeral)
 
 #### Gamble Button
 
+![Gamble Button Panel](./demo-usage-examples/gamble-button-panel.png)
+
+![Gamble Modals](./demo-usage-examples/gamble-modals.png)
+
+![Gamble Feedback Messages](./demo-usage-examples/gamble-feedback-msg.png)=
+
 - Click "Play Gamble" button in gamble channel
 - Fill modal with choice (heads/tails) and bet amount (1-5)
 - Results are **ephemeral** (only visible to you, dismissible)
 - Keeps the channel clean
 
+#### Lucky Draw Button
+
+![Luckydraw Button Panel](./demo-usage-examples/luckydraw-button-panel.png)
+
+![Luckydraw Feedback Messages](./demo-usage-examples/luckydraw-feedback-msg.png)=
+
+- Click "Try Your Luck!" button in luckydraw channel
+- Earn 5 honor points or lose 5 honor points depends on your luck
+- Can play 5 times/day
+- Results are **ephemeral** (only visible to you, dismissible)
+- Keeps the channel clean
+
 #### Hall of Fame (Auto-updating Leaderboard)
 
-![Leaderboard Channel](./demo-usage-examples/leaderboard-channel.png)
+![Leaderboard Panel](./demo-usage-examples/leaderboard-panel.png)
 
 - View live leaderboard in Hall of Fame channel
 - Auto-updates every 3 minutes
@@ -339,6 +365,8 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 - No button needed - just view the channel
 
 #### Instruction Channel
+
+![Instruction Panel](./demo-usage-examples/instruction-panel.png)
 
 - Comprehensive guide showing how to use all buttons
 - Explains all features and rules
