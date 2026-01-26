@@ -353,16 +353,12 @@ async function handleGambleButton(interaction: ButtonInteraction): Promise<void>
   modal.addComponents(firstActionRow, secondActionRow);
 
   await interaction.showModal(modal);
-}
-
-/**
+}/**
  * Handle the coin flip modal submission
  */
 async function handleGambleModal(interaction: any): Promise<void> {
   // Use ephemeral reply so only the user who played can see the result
-  await interaction.deferReply({ ephemeral: true });
-
-  try {
+  await interaction.deferReply({ ephemeral: true });  try {
     // Check MongoDB connection
     if (mongoose.connection.readyState !== MONGODB_CONNECTED) {
       await interaction.editReply({

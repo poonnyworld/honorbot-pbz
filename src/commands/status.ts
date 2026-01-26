@@ -55,8 +55,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     }
     
     const messageCooldownInfo = isOnCooldown
-      ? `⏳ Cooldown: **${cooldownRemaining}** วินาที (รอ ${cooldownRemaining} วินาทีเพื่อรับแต้มจากการส่งข้อความ)`
-      : '✅ พร้อมรับแต้มจากการส่งข้อความ';
+      ? `⏳ Cooldown: **${cooldownRemaining}** seconds (wait ${cooldownRemaining} seconds to receive points from sending messages)`
+      : '✅ Ready to receive points from sending messages';
 
     // Calculate daily command status
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));

@@ -146,6 +146,8 @@ export class StatusLogService {
         console.log('[StatusLogService] Searching for existing log message...');
         const messages = await textChannel.messages.fetch({ limit: 50 });
 
+        // Collect all status log messages
+        const statusLogMessages: Message[] = [];
         for (const [id, msg] of messages) {
           if (msg.author.id === this.client.user?.id && msg.embeds.length > 0) {
             // Check if this message has our status log embed (by title)
@@ -153,10 +155,29 @@ export class StatusLogService {
               embed.title?.includes('Status Log') || embed.title?.includes('Point Distribution')
             );
             if (hasStatusLogEmbed) {
-              logMessage = msg;
-              this.logMessageId = id;
-              console.log(`[StatusLogService] ✓ Found log message: ${id}`);
-              break;
+              statusLogMessages.push(msg);
+            }
+          }
+        }
+
+        // Find the latest message (most recent by timestamp)
+        if (statusLogMessages.length > 0) {
+          // Sort by createdTimestamp (newest first)
+          statusLogMessages.sort((a, b) => b.createdTimestamp - a.createdTimestamp);
+          logMessage = statusLogMessages[0]; // Get the latest message
+          this.logMessageId = logMessage.id;
+          console.log(`[StatusLogService] ✓ Found ${statusLogMessages.length} log message(s), using latest: ${logMessage.id}`);
+
+          // Delete old messages if there are more than one
+          if (statusLogMessages.length > 1) {
+            console.log(`[StatusLogService] Deleting ${statusLogMessages.length - 1} old log message(s)...`);
+            for (let i = 1; i < statusLogMessages.length; i++) {
+              try {
+                await statusLogMessages[i].delete();
+                console.log(`[StatusLogService] ✓ Deleted old log message: ${statusLogMessages[i].id}`);
+              } catch (deleteError) {
+                console.error(`[StatusLogService] ❌ Error deleting old log message ${statusLogMessages[i].id}:`, deleteError);
+              }
             }
           }
         }
