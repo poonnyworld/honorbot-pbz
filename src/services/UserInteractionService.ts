@@ -40,10 +40,10 @@ export class UserInteractionService {
   private async setupAllButtons(client: Client): Promise<void> {
     console.log('[UserInteractionService] Setting up all persistent buttons...');
 
-    // Setup Profile button
+    // Setup Profile button (honor-hall)
     await this.ensureButton(
       client,
-      process.env.PROFILE_CHANNEL_ID,
+      process.env.HALL_CHANNEL_ID,
       'profile',
       '🪪 View Profile',
       'Click the button below to view your honor points, rank, and statistics!',
@@ -53,33 +53,33 @@ export class UserInteractionService {
       '🪪'
     );
 
-    // Setup Status button
+    // Setup Tasks button (shows what's remaining to do today)
     await this.ensureButton(
       client,
-      process.env.STATUS_CHANNEL_ID,
-      'status',
-      '📊 Check Status',
-      'Click the button below to check your honor points status, daily quota, and cooldown information!',
+      process.env.TASKS_CHANNEL_ID,
+      'tasks',
+      '📋 Today\'s Tasks',
+      'Click the button below to see what tasks you still have remaining today!',
       'status_button',
-      'Check Status',
+      'Check Remaining Tasks',
       ButtonStyle.Secondary,
-      '📊'
+      '📋'
     );
 
-    // Setup Gamble button
+    // Setup Coin Flip button
     await this.ensureButton(
       client,
-      process.env.GAMBLE_CHANNEL_ID,
+      process.env.COIN_FLIP_CHANNEL_ID,
       'gamble',
       '🎰 Coin Flip Game',
       'Click the button below to play coin flip with your honor points!\n\n**Rules:**\n• Bet 1-5 points\n• Win: Double your bet\n• Lose: Lose your bet',
       'gamble_button',
-      'Play Gamble',
+      'Play Coin Flip',
       ButtonStyle.Danger,
       '🎰'
     );
 
-    // Setup Instruction channel (replaces help channel)
+    // Setup Instruction channel (honor-manual)
     await this.setupInstructionChannel(client);
   }
 
@@ -231,19 +231,19 @@ export class UserInteractionService {
   }
 
   /**
-   * Setup Instruction channel with guide on how to use all buttons
+   * Setup Instruction channel (honor-manual) with guide on how to use all buttons
    */
   private async setupInstructionChannel(client: Client): Promise<void> {
-    const channelId = process.env.INSTRUCTION_CHANNEL_ID;
+    const channelId = process.env.MANUAL_CHANNEL_ID;
 
     if (!channelId) {
-      console.log('[UserInteractionService] INSTRUCTION_CHANNEL_ID not set, skipping instruction channel setup.');
+      console.log('[UserInteractionService] MANUAL_CHANNEL_ID not set, skipping instruction channel setup (honor-manual).');
       return;
     }
 
     // Validate channel ID
     if (!/^\d{17,19}$/.test(channelId)) {
-      console.error(`[UserInteractionService] ❌ Invalid INSTRUCTION_CHANNEL_ID format: "${channelId}"`);
+      console.error(`[UserInteractionService] ❌ Invalid MANUAL_CHANNEL_ID format: "${channelId}"`);
       return;
     }
 
@@ -272,10 +272,11 @@ export class UserInteractionService {
       }
 
       // Get channel mentions for buttons
-      const profileChannelMention = process.env.PROFILE_CHANNEL_ID ? `<#${process.env.PROFILE_CHANNEL_ID}>` : 'Profile channel';
-      const statusChannelMention = process.env.STATUS_CHANNEL_ID ? `<#${process.env.STATUS_CHANNEL_ID}>` : 'Status channel';
+      const profileChannelMention = process.env.HALL_CHANNEL_ID ? `<#${process.env.HALL_CHANNEL_ID}>` : '#honor-hall';
+      const tasksChannelMention = process.env.TASKS_CHANNEL_ID ? `<#${process.env.TASKS_CHANNEL_ID}>` : 'Tasks channel';
+      const statusChannelMention = process.env.STATUS_CHANNEL_ID ? `<#${process.env.STATUS_CHANNEL_ID}>` : '#honor-status';
       const dailyChannelMention = process.env.DAILYCHECKING_CHANNEL_ID ? `<#${process.env.DAILYCHECKING_CHANNEL_ID}>` : 'Daily check-in channel';
-      const gambleChannelMention = process.env.GAMBLE_CHANNEL_ID ? `<#${process.env.GAMBLE_CHANNEL_ID}>` : 'Gamble channel';
+      const coinFlipChannelMention = process.env.COIN_FLIP_CHANNEL_ID ? `<#${process.env.COIN_FLIP_CHANNEL_ID}>` : 'Coin Flip channel';
       const hallOfFameMention = process.env.LEADERBOARD_CHANNEL_ID ? `<#${process.env.LEADERBOARD_CHANNEL_ID}>` : 'Hall of Fame channel';
 
       // Create comprehensive instruction embed
@@ -295,47 +296,56 @@ export class UserInteractionService {
           {
             name: '💬 Chat Activity - Message Points System',
             value: `Earn **1-5 random honor points** per message (max **5 times/day**)\n\n` +
-                   `**Reaction Feedback:**\n` +
-                   `• Number emoji (1️⃣-5️⃣) = Points earned from that message\n` +
-                   `• ⏳ = Cooldown active (wait 60 seconds between rewards)\n` +
-                   `• ✅ = Daily limit reached (appears on the 5th message)\n` +
-                   `• No reaction = Daily limit exceeded (no points earned)\n\n` +
+                   `**How to Check Status:**\n` +
+                   `• Use ${tasksChannelMention} to check your cooldown and daily quota\n` +
+                   `• Check ${statusChannelMention} to see point distribution log\n\n` +
                    `**Rules:**\n` +
                    `• 60-second cooldown between rewards\n` +
                    `• Daily limit: **5 messages** per day (resets at midnight UTC)\n` +
-                   `• Bot messages are ignored`,
+                   `• Bot messages are ignored\n` +
+                   `• No reactions - check status via /status command or ${tasksChannelMention}`,
             inline: false,
           },
           {
             name: '🪪 View Profile',
             value: `Go to ${profileChannelMention} and click the **"View Profile"** button to see:\n\n` +
                    `• Your honor points and global rank\n` +
-                   `• Daily message progress (Messages: X/5)\n` +
+                   `• Daily message progress (Current: X / Max: 5)\n` +
                    `• Today's message points earned\n` +
-                   `• Daily check-in status\n` +
+                   `• Daily check-in availability\n` +
                    `• Join date`,
             inline: false,
           },
           {
-            name: '📊 Check Status',
-            value: `Go to ${statusChannelMention} and click the **"Check Status"** button to see:\n\n` +
+            name: '📋 Today\'s Tasks',
+            value: `Go to ${tasksChannelMention} and click the **"Check Remaining Tasks"** button to see:\n\n` +
                    `• Current honor points\n` +
-                   `• Daily message quota (X/5)\n` +
-                   `• Cooldown status (time remaining)\n` +
-                   `• Daily check-in availability`,
+                   `• Daily message quota (Current: X / Max: 5)\n` +
+                   `• Message cooldown (shows seconds remaining for receiving points from messages)\n` +
+                   `• Cooldown status\n` +
+                   `• Daily check-in availability\n` +
+                   `• What tasks you still have remaining today`,
+            inline: false,
+          },
+          {
+            name: '📊 Status Log',
+            value: `Check ${statusChannelMention} to see the **point distribution log**!\n\n` +
+                   `• Shows last 10 point distributions\n` +
+                   `• Real-time updates as users earn points\n` +
+                   `• Format: [Time] Username earned +X points (Current: Y/5)`,
             inline: false,
           },
           {
             name: '🏆 Hall of Fame (Leaderboard)',
-            value: `Check ${hallOfFameMention} to see the **live leaderboard** that updates every 3 minutes!\n\n` +
+            value: `Check ${hallOfFameMention} to see the **live leaderboard** that updates daily!\n\n` +
                    `• Shows top 10 warriors with rankings\n` +
                    `• Medal emojis for top 3 (🥇🥈🥉)\n` +
-                   `• Auto-updates every 3 minutes`,
+                   `• Auto-updates once every 24 hours (daily)`,
             inline: false,
           },
           {
             name: '🎰 Coin Flip Game',
-            value: `Go to ${gambleChannelMention} and click the **"Play Gamble"** button to play!\n\n` +
+            value: `Go to ${coinFlipChannelMention} and click the **"Play Coin Flip"** button to play!\n\n` +
                    `**How to Play:**\n` +
                    `1. Click the button\n` +
                    `2. Choose "heads" or "tails"\n` +

@@ -9,7 +9,8 @@ import * as statusCommand from '../commands/status';
 import * as gambleCommand from '../commands/gamble';
 // PVP system temporarily disabled
 // import * as pvpCommand from '../commands/pvp';
-import { LuckyDrawService } from '../services/LuckyDrawService';
+// TODO: Lucky Draw feature postponed - will be implemented in future update alongside PvP Rock-Paper-Scissors
+// import { LuckyDrawService } from '../services/LuckyDrawService';
 import { User } from '../models/User';
 import mongoose from 'mongoose';
 import { MONGODB_CONNECTED } from '../utils/connectDB';
@@ -35,10 +36,11 @@ export async function execute(interaction: Interaction): Promise<void> {
       await handleGambleButton(interaction);
       return;
     }
-    if (interaction.customId === 'luckydraw_claim_button') {
-      await LuckyDrawService.handleLuckyDrawButton(interaction);
-      return;
-    }
+    // TODO: Lucky Draw feature postponed - will be implemented in future update alongside PvP Rock-Paper-Scissors
+    // if (interaction.customId === 'luckydraw_claim_button') {
+    //   await LuckyDrawService.handleLuckyDrawButton(interaction);
+    //   return;
+    // }
     if (interaction.customId.startsWith('reset_confirm_') || interaction.customId.startsWith('reset_cancel_')) {
       await resetCommand.handleResetButton(interaction);
       return;
@@ -56,7 +58,7 @@ export async function execute(interaction: Interaction): Promise<void> {
     // }
   }
 
-  // Handle modal submissions (for gamble)
+  // Handle modal submissions (for coin flip)
   if (interaction.isModalSubmit()) {
     if (interaction.customId === 'gamble_modal') {
       await handleGambleModal(interaction);
@@ -319,10 +321,10 @@ async function handleStatusButton(interaction: ButtonInteraction): Promise<void>
 }
 
 /**
- * Handle the gamble button interaction - show modal for bet input
+ * Handle the coin flip button interaction - show modal for bet input
  */
 async function handleGambleButton(interaction: ButtonInteraction): Promise<void> {
-  // Create modal for gamble input
+  // Create modal for coin flip input
   const modal = new ModalBuilder()
     .setCustomId('gamble_modal')
     .setTitle('🎰 Coin Flip Game');
@@ -354,7 +356,7 @@ async function handleGambleButton(interaction: ButtonInteraction): Promise<void>
 }
 
 /**
- * Handle the gamble modal submission
+ * Handle the coin flip modal submission
  */
 async function handleGambleModal(interaction: any): Promise<void> {
   // Use ephemeral reply so only the user who played can see the result
@@ -521,17 +523,17 @@ async function handleGambleModal(interaction: any): Promise<void> {
     await interaction.editReply({ embeds: [embed] });
 
     console.log(
-      `[Gamble] User ${user.username} (${interaction.user.id}) bet ${betAmount} points. ` +
+      `[Coin Flip] User ${user.username} (${interaction.user.id}) bet ${betAmount} points. ` +
       `Choice: ${userChoice}, Result: ${coinResult}, ${didWin ? 'WIN' : 'LOSE'}. ` +
       `New balance: ${user.honorPoints}. Daily plays: ${user.dailyLuckyDrawCount}/${DAILY_LUCKY_DRAW_LIMIT}`
     );
   } catch (error) {
-    console.error('Error processing gamble modal:', error);
+    console.error('Error processing coin flip modal:', error);
 
     const errorEmbed = new EmbedBuilder()
       .setColor(0xff0000)
       .setTitle('❌ Error')
-      .setDescription('An error occurred while processing your gamble. Please try again later.')
+      .setDescription('An error occurred while processing your coin flip. Please try again later.')
       .setTimestamp();
 
     try {

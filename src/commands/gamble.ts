@@ -10,7 +10,7 @@ const MAX_BET_AMOUNT = 5; // Maximum bet amount per play
 
 export const data = new SlashCommandBuilder()
   .setName('gamble')
-  .setDescription('Play coin flip with honor points')
+  .setDescription('Play coin flip with honor points (Honor-coin-flip)')
   .addStringOption((option) =>
     option
       .setName('choice')
@@ -173,17 +173,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     await interaction.editReply({ embeds: [embed] });
 
     console.log(
-      `[Gamble] User ${user.username} (${interaction.user.id}) bet ${betAmount} points. ` +
+      `[Coin Flip] User ${user.username} (${interaction.user.id}) bet ${betAmount} points. ` +
       `Choice: ${userChoice}, Result: ${coinResult}, ${didWin ? 'WIN' : 'LOSE'}. ` +
       `New balance: ${user.honorPoints}. Daily plays: ${user.dailyLuckyDrawCount}/${DAILY_LUCKY_DRAW_LIMIT}`
     );
   } catch (error) {
-    console.error('[Gamble] Error processing gamble:', error);
+    console.error('[Coin Flip] Error processing coin flip:', error);
 
     const errorEmbed = new EmbedBuilder()
       .setColor(0xff0000)
       .setTitle('❌ Error')
-      .setDescription('An error occurred while processing your gamble. Please try again later.')
+      .setDescription('An error occurred while processing your coin flip. Please try again later.')
       .setTimestamp();
 
     await interaction.editReply({ embeds: [errorEmbed] });

@@ -22,11 +22,12 @@
 ### Key Highlights
 
 - 🔘 **Button-Based Interactions** - Primary interaction method using persistent buttons in dedicated channels
-- 📊 **Real-time Leaderboard** - Automatically updates every 3 minutes in Hall of Fame channel
-- 🎯 **Smart Point System** - Earn points through chat activity with daily limits and cooldowns
+- 📊 **Real-time Leaderboard** - Automatically updates every 24 hours (at midnight UTC) in Hall of Fame channel
+- 🎯 **Smart Point System** - Earn points through chat activity with daily limits and cooldowns (no reactions - check status via buttons)
 - 🎲 **Daily Rewards** - Claim daily honor points with weighted random distribution (1-10 points)
 - 🎰 **Gambling System** - Coin flip game with ephemeral results (private to player)
 - 🎁 **Lucky Draw** - Daily lucky draw feature with random rewards (optional, requires LUCKYDRAW_CHANNEL_ID)
+- 📊 **Status Log** - Real-time point distribution log with cooldown status display
 - 📖 **Instruction Guide** - Comprehensive guide channel showing how to use all features
 - 🌐 **Admin Dashboard** - Web-based admin panel for managing users and viewing statistics
 - 🔒 **Security First** - Comprehensive security audit with rate limiting, input validation, and XSS protection
@@ -59,7 +60,7 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 
 **Hall of Fame (Leaderboard):**
 - **🏆 Auto-updating Leaderboard** - View live leaderboard in Hall of Fame channel
-- Updates every 3 minutes automatically
+- Updates every 24 hours automatically (at midnight UTC)
 - Shows top 10 users with medal emojis (🥇🥈🥉)
 
 ### 👑 Admin Commands (Slash Commands)
@@ -73,15 +74,18 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 ### ⚡ Automatic Features
 
 - **Message Points System** - Earn 1-5 random honor points per message (max 5 times/day)
-  - **Reaction Feedback**: The bot uses emoji reactions instead of text replies to keep chat clean
-    - Number emoji (1️⃣-5️⃣) = Points earned from that message
-    - ⏳ = Cooldown active (wait 60 seconds between rewards)
-    - ✅ = Daily limit reached (appears on the 5th message)
-    - No reaction = Daily limit exceeded (no points earned)
+  - **No Reactions**: Points are earned silently to keep chat clean
   - 60-second cooldown between rewards
   - Daily limit: 5 messages per day (resets at midnight UTC)
+  - Check your cooldown and daily quota via the Tasks channel or Status Log
   - Use Profile or Status buttons to view your daily message progress and today's message points
-- **Hall of Fame (Real-time Leaderboard)** - Auto-updates every 3 minutes in Hall of Fame channel
+- **Status Log** - Real-time point distribution log in Status channel
+  - Shows last 10 point distributions
+  - Displays cooldown status for each user (shows when cooldown ends)
+  - Uses Discord timestamp format for universal timezone display
+  - Format: `<t:timestamp:T> Username earned +X points (Current: Y/5) ⏳ (ends <t:timestamp:T>)` or `✅ Ready`
+  - Auto-updates as users earn points
+- **Hall of Fame (Real-time Leaderboard)** - Auto-updates every 24 hours (at midnight UTC) in Hall of Fame channel
   - Shows top 10 users with rankings
   - Medal emojis for top 3 (🥇🥈🥉)
   - No button needed - just view the channel
@@ -183,7 +187,8 @@ MONGO_URI=mongodb://localhost:27017/honorbot
 # Button Channels (Required)
 DAILYCHECKING_CHANNEL_ID=your_daily_checkin_channel_id
 PROFILE_CHANNEL_ID=your_profile_channel_id
-STATUS_CHANNEL_ID=your_status_channel_id
+TASKS_CHANNEL_ID=your_tasks_channel_id
+STATUS_CHANNEL_ID=your_status_log_channel_id
 GAMBLE_CHANNEL_ID=your_gamble_channel_id
 INSTRUCTION_CHANNEL_ID=your_instruction_channel_id
 
@@ -360,7 +365,7 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 ![Leaderboard Panel](./demo-usage-examples/leaderboard-panel.png)
 
 - View live leaderboard in Hall of Fame channel
-- Auto-updates every 3 minutes
+- Auto-updates every 24 hours (at midnight UTC)
 - Shows top 10 users with medal emojis (🥇🥈🥉)
 - No button needed - just view the channel
 
@@ -493,7 +498,8 @@ docker run -d \
 | `LEADERBOARD_CHANNEL_ID`     | Channel ID for Hall of Fame (auto-updating leaderboard)   | ✅ Yes   | -                       |
 | `DAILYCHECKING_CHANNEL_ID`   | Channel ID for daily reward button                         | ✅ Yes   | -                       |
 | `PROFILE_CHANNEL_ID`         | Channel ID for profile button                              | ✅ Yes   | -                       |
-| `STATUS_CHANNEL_ID`          | Channel ID for status button                               | ✅ Yes   | -                       |
+| `TASKS_CHANNEL_ID`           | Channel ID for tasks/status button                         | ✅ Yes   | -                       |
+| `STATUS_CHANNEL_ID`          | Channel ID for status log (point distribution log)         | ✅ Yes   | -                       |
 | `GAMBLE_CHANNEL_ID`          | Channel ID for gamble button                               | ✅ Yes   | -                       |
 | `LUCKYDRAW_CHANNEL_ID`       | Channel ID for lucky draw button (optional feature)        | ❌ No    | -                       |
 | `INSTRUCTION_CHANNEL_ID`     | Channel ID for instruction guide                          | ✅ Yes   | -                       |
@@ -534,7 +540,8 @@ The bot uses persistent buttons in dedicated channels. Each channel requires a c
 
 - **`DAILYCHECKING_CHANNEL_ID`** - Daily reward claim button
 - **`PROFILE_CHANNEL_ID`** - View profile button
-- **`STATUS_CHANNEL_ID`** - Check status button
+- **`TASKS_CHANNEL_ID`** - Check tasks/status button
+- **`STATUS_CHANNEL_ID`** - Status log channel (point distribution log with cooldown status)
 - **`GAMBLE_CHANNEL_ID`** - Coin flip game button (results are ephemeral)
 - **`LUCKYDRAW_CHANNEL_ID`** - Lucky draw button (optional - feature disabled if not set)
 - **`INSTRUCTION_CHANNEL_ID`** - Instruction guide (comprehensive guide for all features)
@@ -599,7 +606,8 @@ The bot primarily uses **persistent buttons** in dedicated channels:
 1. **Create Required Channels:**
    - Daily check-in channel
    - Profile channel
-   - Status channel
+   - Tasks channel (for status/tasks button)
+   - Status channel (for point distribution log)
    - Gamble channel
    - Instruction channel
    - Hall of Fame channel (for leaderboard)
@@ -609,6 +617,7 @@ The bot primarily uses **persistent buttons** in dedicated channels:
    ```env
    DAILYCHECKING_CHANNEL_ID=your_channel_id
    PROFILE_CHANNEL_ID=your_channel_id
+   TASKS_CHANNEL_ID=your_channel_id
    STATUS_CHANNEL_ID=your_channel_id
    GAMBLE_CHANNEL_ID=your_channel_id
    INSTRUCTION_CHANNEL_ID=your_channel_id

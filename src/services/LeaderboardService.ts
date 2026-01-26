@@ -9,7 +9,7 @@ export class LeaderboardService {
   private client: Client | null = null;
 
   /**
-   * Start the leaderboard service with a cron job that runs every 5 minutes
+   * Start the leaderboard service with a cron job that runs daily at midnight UTC
    */
   public start(client: Client): void {
     this.client = client; // Store client for manual updates
@@ -66,30 +66,30 @@ export class LeaderboardService {
       });
     }
 
-    // Schedule cron job to run on the 1st day of every month at midnight UTC
-    // Cron syntax: 0 0 1 * * = at 00:00 on day 1 of every month
-    console.log('[LeaderboardService] Scheduling cron job: 0 0 1 * * (1st day of every month at midnight UTC)');
-    this.cronJob = cron.schedule('0 0 1 * *', async () => {
-      console.log('[LeaderboardService] ⏰ ========== MONTHLY LEADERBOARD UPDATE ==========');
-      console.log('[LeaderboardService] Running Monthly Leaderboard Update...');
+    // Schedule cron job to run every day at midnight UTC
+    // Cron syntax: 0 0 * * * = at 00:00 every day
+    console.log('[LeaderboardService] Scheduling cron job: 0 0 * * * (every day at midnight UTC)');
+    this.cronJob = cron.schedule('0 0 * * *', async () => {
+      console.log('[LeaderboardService] ⏰ ========== DAILY LEADERBOARD UPDATE ==========');
+      console.log('[LeaderboardService] Running Daily Leaderboard Update...');
       console.log(`[LeaderboardService] Current time: ${new Date().toISOString()}`);
 
       try {
         console.log('[LeaderboardService] Calling updateLeaderboard()...');
         await this.updateLeaderboard(client);
-        console.log('[LeaderboardService] ✓ Monthly leaderboard update completed successfully');
+        console.log('[LeaderboardService] ✓ Daily leaderboard update completed successfully');
       } catch (error) {
-        console.error('[LeaderboardService] ❌ Error in monthly leaderboard update:', error);
+        console.error('[LeaderboardService] ❌ Error in daily leaderboard update:', error);
         if (error instanceof Error) {
           console.error('[LeaderboardService] Error message:', error.message);
           console.error('[LeaderboardService] Error stack:', error.stack);
         }
       }
-      console.log('[LeaderboardService] ========== MONTHLY UPDATE ENDED ==========');
+      console.log('[LeaderboardService] ========== DAILY UPDATE ENDED ==========');
     });
 
     console.log('[LeaderboardService] ✓ Leaderboard service started successfully.');
-    console.log('[LeaderboardService] Will update on the 1st day of every month and on bot ready.');
+    console.log('[LeaderboardService] Will update every day at midnight UTC and on bot ready.');
   }
 
   /**

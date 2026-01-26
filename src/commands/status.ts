@@ -42,13 +42,21 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const now = new Date();
 
-    // Calculate cooldown status
-    const timeSinceLastMessage = (now.getTime() - user.lastMessageDate.getTime()) / 1000;
-    const cooldownRemaining = Math.ceil(60 - timeSinceLastMessage);
-    const isOnCooldown = timeSinceLastMessage < 60;
-    const cooldownStatus = isOnCooldown 
-      ? `Wait **${cooldownRemaining}** second(s)` 
-      : '✅ **Ready**';
+    // Calculate cooldown status for message rewards
+    const isNewUserFirstMessage = user.lastMessageDate.getTime() === 0;
+    let timeSinceLastMessage = 0;
+    let cooldownRemaining = 0;
+    let isOnCooldown = false;
+    
+    if (!isNewUserFirstMessage) {
+      timeSinceLastMessage = (now.getTime() - user.lastMessageDate.getTime()) / 1000;
+      cooldownRemaining = Math.max(0, Math.ceil(60 - timeSinceLastMessage));
+      isOnCooldown = timeSinceLastMessage < 60;
+    }
+    
+    const messageCooldownInfo = isOnCooldown
+      ? `⏳ Cooldown: **${cooldownRemaining}** วินาที (รอ ${cooldownRemaining} วินาทีเพื่อรับแต้มจากการส่งข้อความ)`
+      : '✅ พร้อมรับแต้มจากการส่งข้อความ';
 
     // Calculate daily command status
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -83,14 +91,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       : user.dailyMessageCount;
 
     const dailyQuotaStatus = currentDailyCount >= DAILY_MESSAGE_REWARD_LIMIT
-      ? `**${currentDailyCount}/${DAILY_MESSAGE_REWARD_LIMIT}** 🛑 (Limit reached)`
-      : `**${currentDailyCount}/${DAILY_MESSAGE_REWARD_LIMIT}**`;
+      ? `Current: **${currentDailyCount}** / Max: **${DAILY_MESSAGE_REWARD_LIMIT}** 🛑 (Limit reached)`
+      : `Current: **${currentDailyCount}** / Max: **${DAILY_MESSAGE_REWARD_LIMIT}**`;
 
     // Build embed
     const embed = new EmbedBuilder()
       .setColor(0x8b0000)
-      .setTitle('📊 Honor Points Status')
-      .setDescription(`Status overview for **${interaction.user.username}**`)
+      .setTitle('📋 Today\'s Tasks')
+      .setDescription(`Tasks overview for **${interaction.user.username}**`)
       .addFields(
         {
           name: '⚔️ Current Honor Points',
@@ -99,16 +107,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         },
         {
           name: '💬 Daily Message Quota',
-          value: `Messages today: ${dailyQuotaStatus}`,
+          value: dailyQuotaStatus,
           inline: false,
         },
         {
-          name: '⏱️ Cooldown Status',
-          value: cooldownStatus,
+          name: '⏱️ Message Cooldown',
+          value: messageCooldownInfo,
           inline: false,
         },
         {
-          name: '🧘 Daily Command Status',
+          name: '🧘 Daily Check-in',
           value: dailyCommandStatus,
           inline: false,
         }

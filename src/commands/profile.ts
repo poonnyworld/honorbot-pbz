@@ -198,7 +198,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     // Add Daily Message Progress field
     fields.push({
       name: '💬 Daily Message Progress',
-      value: `Messages: **${currentDailyMessageCount}/${DAILY_MESSAGE_REWARD_LIMIT}**`,
+      value: `Current: **${currentDailyMessageCount}** / Max: **${DAILY_MESSAGE_REWARD_LIMIT}**`,
       inline: true,
     });
 
