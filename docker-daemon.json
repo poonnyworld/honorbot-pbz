@@ -1,9 +1,0 @@
-{
-  "registry-mirrors": [
-    "https://docker.mirror.sjtug.sjtu.edu.cn",
-    "https://mirror.baidubce.com",
-    "https://dockerhub.azk8s.cn"
-  ],
-  "max-concurrent-downloads": 3,
-  "max-concurrent-uploads": 5
-}

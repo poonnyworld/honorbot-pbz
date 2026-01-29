@@ -9,7 +9,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)
 ![License](https://img.shields.io/badge/license-ISC-green.svg)
 
-[Features](#features) • [Installation](#installation) • [Setup](#setup) • [Demo & Usage](#demo--usage-examples) • [Documentation](#configuration)
+[Features](#features) • [Installation](#installation) • [Setup](#setup) • [Documentation](#configuration)
 
 </div>
 
@@ -42,6 +42,7 @@
 The bot uses **persistent buttons** in dedicated channels as the primary interaction method. Slash commands are **admin-only** for backend management.
 
 **Available Buttons:**
+
 - **🧘 Daily Check-in** - Click button in daily-checkin channel to claim daily reward (1-10 random points)
 - **🪪 View Profile** - Click button in profile channel to view your honor points, rank, and statistics
 - **📊 Check Status** - Click button in status channel to check daily quota and cooldown information
@@ -55,10 +56,12 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
   - Requires at least 5 honor points to play
 
 **Instruction Channel:**
+
 - **📖 Instruction Guide** - Comprehensive guide channel showing how to use all buttons and features
 - Auto-updates with channel mentions for easy navigation
 
 **Hall of Fame (Leaderboard):**
+
 - **🏆 Auto-updating Leaderboard** - View live leaderboard in Hall of Fame channel
 - Updates every 24 hours automatically (at midnight UTC)
 - Shows top 10 users with medal emojis (🥇🥈🥉)
@@ -297,115 +300,6 @@ Bot is ready! Use "npm run deploy" to register slash commands.
 
 ---
 
-## Demo & Usage Examples
-
-This section provides visual examples to help you understand how HonorBot PBZ works.
-
-### Button-Based Interactions
-
-The bot uses **persistent buttons** in dedicated channels as the primary interaction method.
-
-#### Daily Check-in Button
-
-![Daily Checkin - Button Panel](./demo-usage-examples/daily-button-panel.png)
-
-![Daily Checkin - Feedback Messages](./demo-usage-examples/daily-feedback-msg.png)
-
-- Click "Claim Daily" button in daily-checkin channel
-- Earn 1-10 random honor points
-- Available once per day
-
-#### Profile Button
-
-![Profile Button Panel](./demo-usage-examples/profile-button-panel.png)
-
-![Profile Feedback Messages](./demo-usage-examples/profile-feedback-msg.png)
-
-- Click "View Profile" button in profile channel
-- View honor points, rank, daily progress, and statistics
-- Private view (ephemeral)
-
-#### Status Button
-
-![Status Button Panel](./demo-usage-examples/status-button-panel.png)
-
-![Status Feedback Messages](./demo-usage-examples/status-feedback-msg.png)
-
-- Click "Check Status" button in status channel
-- View daily quota, cooldown status, and check-in availability
-- Private view (ephemeral)
-
-#### Gamble Button
-
-![Gamble Button Panel](./demo-usage-examples/gamble-button-panel.png)
-
-![Gamble Modals](./demo-usage-examples/gamble-modals.png)
-
-![Gamble Feedback Messages](./demo-usage-examples/gamble-feedback-msg.png)=
-
-- Click "Play Gamble" button in gamble channel
-- Fill modal with choice (heads/tails) and bet amount (1-5)
-- Results are **ephemeral** (only visible to you, dismissible)
-- Keeps the channel clean
-
-#### Lucky Draw Button
-
-![Luckydraw Button Panel](./demo-usage-examples/luckydraw-button-panel.png)
-
-![Luckydraw Feedback Messages](./demo-usage-examples/luckydraw-feedback-msg.png)=
-
-- Click "Try Your Luck!" button in luckydraw channel
-- Earn 5 honor points or lose 5 honor points depends on your luck
-- Can play 5 times/day
-- Results are **ephemeral** (only visible to you, dismissible)
-- Keeps the channel clean
-
-#### Hall of Fame (Auto-updating Leaderboard)
-
-![Leaderboard Panel](./demo-usage-examples/leaderboard-panel.png)
-
-- View live leaderboard in Hall of Fame channel
-- Auto-updates every 24 hours (at midnight UTC)
-- Shows top 10 users with medal emojis (🥇🥈🥉)
-- No button needed - just view the channel
-
-#### Instruction Channel
-
-![Instruction Panel](./demo-usage-examples/instruction-panel.png)
-
-- Comprehensive guide showing how to use all buttons
-- Explains all features and rules
-- Auto-updates with channel mentions
-- No button needed - just view the channel
-
-### Admin Web Dashboard
-
-#### Dashboard Overview
-
-![Admin Dashboard Overview](./demo-usage-examples/admin-dashboard-overview.png)
-
-#### User Management Modal
-
-![Edit User Modal](./demo-usage-examples/admin-edit-modal.png)
-
-#### Dashboard Search Functionality
-
-![Dashboard Search](./demo-usage-examples/admin-dashboard-search.png)
-
-### Admin Backup Workflow
-
-![Backup Export](./demo-usage-examples/backup-export.png)
-
-![Backup Import](./demo-usage-examples/backup-import.png)
-
----
-
-### Coming Soon
-
-_New demo content will be added here soon._
-
----
-
 ## Docker Deployment
 
 ### Using Docker Compose (Recommended)
@@ -489,27 +383,27 @@ docker run -d \
 
 ### Environment Variables
 
-| Variable                     | Description                                                | Required | Default                 |
-| ---------------------------- | ---------------------------------------------------------- | -------- | ----------------------- |
-| `DISCORD_TOKEN`              | Discord bot token                                          | ✅ Yes   | -                       |
-| `CLIENT_ID`                  | Discord application client ID                              | ✅ Yes   | -                       |
-| `GUILD_ID`                   | Discord server (guild) ID                                  | ✅ Yes   | -                       |
-| `MONGO_URI`                  | MongoDB connection string                                  | ✅ Yes   | -                       |
-| `LEADERBOARD_CHANNEL_ID`     | Channel ID for Hall of Fame (auto-updating leaderboard)   | ✅ Yes   | -                       |
-| `DAILYCHECKING_CHANNEL_ID`   | Channel ID for daily reward button                         | ✅ Yes   | -                       |
-| `PROFILE_CHANNEL_ID`         | Channel ID for profile button                              | ✅ Yes   | -                       |
-| `TASKS_CHANNEL_ID`           | Channel ID for tasks/status button                         | ✅ Yes   | -                       |
-| `STATUS_CHANNEL_ID`          | Channel ID for status log (point distribution log)         | ✅ Yes   | -                       |
-| `GAMBLE_CHANNEL_ID`          | Channel ID for gamble button                               | ✅ Yes   | -                       |
-| `LUCKYDRAW_CHANNEL_ID`       | Channel ID for lucky draw button (optional feature)        | ❌ No    | -                       |
-| `INSTRUCTION_CHANNEL_ID`     | Channel ID for instruction guide                          | ✅ Yes   | -                       |
-| `PORT`                       | Web dashboard port                                         | ❌ No    | `3000`                  |
-| `WEB_USER`                   | Admin panel username                                       | ❌ No    | `admin`                 |
-| `WEB_PASS`                   | Admin panel password (⚠️ **REQUIRED in production**)       | ❌ No    | `password` (dev only)   |
-| `ENABLE_STREAK`              | Enable daily streak multiplier (currently not used)       | ❌ No    | `true`                  |
-| `DAILY_MESSAGE_POINTS_LIMIT` | Daily limit for message points                             | ❌ No    | `100`                   |
-| `ALLOWED_ORIGIN`             | CORS allowed origin for dashboard                          | ❌ No    | `http://localhost:3000` |
-| `NODE_ENV`                   | Environment mode (`production` or `development`)           | ❌ No    | `production`            |
+| Variable                     | Description                                             | Required | Default                 |
+| ---------------------------- | ------------------------------------------------------- | -------- | ----------------------- |
+| `DISCORD_TOKEN`              | Discord bot token                                       | ✅ Yes   | -                       |
+| `CLIENT_ID`                  | Discord application client ID                           | ✅ Yes   | -                       |
+| `GUILD_ID`                   | Discord server (guild) ID                               | ✅ Yes   | -                       |
+| `MONGO_URI`                  | MongoDB connection string                               | ✅ Yes   | -                       |
+| `LEADERBOARD_CHANNEL_ID`     | Channel ID for Hall of Fame (auto-updating leaderboard) | ✅ Yes   | -                       |
+| `DAILYCHECKING_CHANNEL_ID`   | Channel ID for daily reward button                      | ✅ Yes   | -                       |
+| `PROFILE_CHANNEL_ID`         | Channel ID for profile button                           | ✅ Yes   | -                       |
+| `TASKS_CHANNEL_ID`           | Channel ID for tasks/status button                      | ✅ Yes   | -                       |
+| `STATUS_CHANNEL_ID`          | Channel ID for status log (point distribution log)      | ✅ Yes   | -                       |
+| `GAMBLE_CHANNEL_ID`          | Channel ID for gamble button                            | ✅ Yes   | -                       |
+| `LUCKYDRAW_CHANNEL_ID`       | Channel ID for lucky draw button (optional feature)     | ❌ No    | -                       |
+| `INSTRUCTION_CHANNEL_ID`     | Channel ID for instruction guide                        | ✅ Yes   | -                       |
+| `PORT`                       | Web dashboard port                                      | ❌ No    | `3000`                  |
+| `WEB_USER`                   | Admin panel username                                    | ❌ No    | `admin`                 |
+| `WEB_PASS`                   | Admin panel password (⚠️ **REQUIRED in production**)    | ❌ No    | `password` (dev only)   |
+| `ENABLE_STREAK`              | Enable daily streak multiplier (currently not used)     | ❌ No    | `true`                  |
+| `DAILY_MESSAGE_POINTS_LIMIT` | Daily limit for message points                          | ❌ No    | `100`                   |
+| `ALLOWED_ORIGIN`             | CORS allowed origin for dashboard                       | ❌ No    | `http://localhost:3000` |
+| `NODE_ENV`                   | Environment mode (`production` or `development`)        | ❌ No    | `production`            |
 
 ### Feature Flags
 
@@ -548,18 +442,21 @@ The bot uses persistent buttons in dedicated channels. Each channel requires a c
 - **`LEADERBOARD_CHANNEL_ID`** - Hall of Fame (auto-updating leaderboard, no button needed)
 
 **Setup:**
+
 1. Create channels in your Discord server
 2. Copy channel IDs (right-click → Copy ID, requires Developer Mode)
 3. Add to `.env` file
 4. Restart the bot
 
 **Behavior:**
+
 - Buttons are persistent and auto-recreate if deleted
 - Button messages update every 3 minutes
 - All button interactions are ephemeral (private to user)
 - Gamble results are ephemeral and dismissible
 
 **Optional Features:**
+
 - **Lucky Draw** - Only available if `LUCKYDRAW_CHANNEL_ID` is set in `.env`
   - If not set, the lucky draw service will not start and the feature will be unavailable
   - Check bot logs for: `[LuckyDrawService] ⚠️ LUCKYDRAW_CHANNEL_ID not set. Lucky draw service will not start.`
@@ -614,6 +511,7 @@ The bot primarily uses **persistent buttons** in dedicated channels:
    - Lucky Draw channel (optional - only if you want to enable lucky draw feature)
 
 2. **Add Channel IDs to `.env`:**
+
    ```env
    DAILYCHECKING_CHANNEL_ID=your_channel_id
    PROFILE_CHANNEL_ID=your_channel_id
@@ -669,15 +567,6 @@ See [`BUTTON_SETUP.md`](./BUTTON_SETUP.md) for detailed setup instructions.
 
 ```
 honorbot-pbz/
-├── demo-usage-examples/    # Screenshots and demo images (add your images here)
-│   ├── daily-command-first.png
-│   ├── profile-command.png
-│   ├── leaderboard-channel.png
-│   ├── admin-dashboard-overview.png
-│   ├── admin-edit-modal.png
-│   ├── admin-dashboard-search.png
-│   ├── backup-export.png
-│   └── backup-import.png
 ├── src/
 │   ├── commands/              # Discord slash commands (admin-only)
 │   │   ├── backup.ts          # Admin backup/restore commands

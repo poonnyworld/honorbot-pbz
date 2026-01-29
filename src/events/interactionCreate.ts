@@ -350,9 +350,7 @@ async function handleGambleButton(interaction: ButtonInteraction): Promise<void>
   const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(choiceInput);
   const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(betInput);
 
-  modal.addComponents(firstActionRow, secondActionRow);
-
-  await interaction.showModal(modal);
+  modal.addComponents(firstActionRow, secondActionRow);  await interaction.showModal(modal);
 }/**
  * Handle the coin flip modal submission
  */
