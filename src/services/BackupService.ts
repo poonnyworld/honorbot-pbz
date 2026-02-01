@@ -143,6 +143,19 @@ export class BackupService {
             lastCheckinDate = new Date(0);
           }
 
+          const honorPointsAtMonthStart =
+            typeof user.honorPointsAtMonthStart === 'number' && Number.isFinite(user.honorPointsAtMonthStart)
+              ? Math.min(Math.floor(user.honorPointsAtMonthStart), Number.MAX_SAFE_INTEGER)
+              : honorPoints;
+
+          let lastMonthlySnapshotAt: Date;
+          try {
+            lastMonthlySnapshotAt = user.lastMonthlySnapshotAt ? new Date(user.lastMonthlySnapshotAt) : new Date(0);
+            if (isNaN(lastMonthlySnapshotAt.getTime())) lastMonthlySnapshotAt = new Date(0);
+          } catch {
+            lastMonthlySnapshotAt = new Date(0);
+          }
+
           // Prepare update data (exclude _id and mongoose internals)
           const updateData: Partial<IUser> = {
             userId: user.userId,
@@ -154,6 +167,8 @@ export class BackupService {
             lastDailyReset: lastDailyReset,
             dailyCheckinStreak: dailyCheckinStreak,
             lastCheckinDate: lastCheckinDate,
+            honorPointsAtMonthStart,
+            lastMonthlySnapshotAt,
           };
 
           return {

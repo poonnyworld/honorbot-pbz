@@ -4,6 +4,7 @@ import { User } from '../models/User';
 
 export class LeaderboardService {
   private cronJob: cron.ScheduledTask | null = null;
+  private monthlyCronJob: cron.ScheduledTask | null = null;
   private lastMessageId: string | null = null;
   private dailyButtonMessageId: string | null = null;
   private client: Client | null = null;
@@ -68,6 +69,24 @@ export class LeaderboardService {
 
     // Schedule cron job to run every day at midnight UTC
     // Cron syntax: 0 0 * * * = at 00:00 every day
+    // Monthly snapshot: run at 00:00 on 1st of each month (Asia/Bangkok)
+    // SAFETY: Only copies honorPoints to honorPointsAtMonthStart - never modifies honorPoints
+    console.log('[LeaderboardService] Scheduling monthly snapshot: 0 0 1 * * (1st of month, Asia/Bangkok)');
+    this.monthlyCronJob = cron.schedule(
+      '0 0 1 * *',
+      async () => {
+        console.log('[LeaderboardService] ⏰ ========== MONTHLY SNAPSHOT ==========');
+        try {
+          await this.updateMonthlySnapshot();
+          console.log('[LeaderboardService] ✓ Monthly snapshot completed');
+        } catch (err) {
+          console.error('[LeaderboardService] ❌ Monthly snapshot failed:', err);
+        }
+        console.log('[LeaderboardService] ========== MONTHLY SNAPSHOT END ==========');
+      },
+      { timezone: 'Asia/Bangkok' }
+    );
+
     console.log('[LeaderboardService] Scheduling cron job: 0 0 * * * (every day at midnight UTC)');
     this.cronJob = cron.schedule('0 0 * * *', async () => {
       console.log('[LeaderboardService] ⏰ ========== DAILY LEADERBOARD UPDATE ==========');
@@ -99,9 +118,37 @@ export class LeaderboardService {
     if (this.cronJob) {
       this.cronJob.stop();
       this.cronJob = null;
-      console.log('[LeaderboardService] Leaderboard service stopped.');
     }
+    if (this.monthlyCronJob) {
+      this.monthlyCronJob.stop();
+      this.monthlyCronJob = null;
+    }
+    console.log('[LeaderboardService] Leaderboard service stopped.');
     this.client = null;
+  }
+
+  /**
+   * Update monthly snapshot - copies current honorPoints to honorPointsAtMonthStart.
+   * SAFETY: NEVER modifies honorPoints. Only reads and stores snapshot.
+   */
+  private async updateMonthlySnapshot(): Promise<void> {
+    const users = await User.find({}).lean();
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    for (const u of users) {
+      await User.updateOne(
+        { userId: u.userId },
+        {
+          $set: {
+            honorPointsAtMonthStart: u.honorPoints ?? 0,
+            lastMonthlySnapshotAt: startOfMonth,
+          },
+        }
+      );
+    }
+    console.log(`[LeaderboardService] Snapshot saved for ${users.length} users (honorPoints unchanged)`);
   }
 
   /**
@@ -222,10 +269,10 @@ export class LeaderboardService {
         return;
       }
 
-      // Generate the embed
-      console.log('[LeaderboardService] Generating leaderboard embed...');
-      const embed = await this.generateEmbed();
-      console.log('[LeaderboardService] ✓ Embed generated successfully');
+      // Generate embeds (all-time + monthly)
+      console.log('[LeaderboardService] Generating leaderboard embeds...');
+      const embeds = await this.generateEmbeds();
+      console.log('[LeaderboardService] ✓ Embeds generated successfully');
 
       // Find the last message sent by the bot in this channel
       // Use improved logic: try stored ID first, then search through messages
@@ -325,7 +372,7 @@ export class LeaderboardService {
         try {
           console.log(`[LeaderboardService] Channel found: ${textChannel.name}`);
           console.log(`[LeaderboardService] Editing existing message: ${lastMessage.id}...`);
-          const editedMessage = await lastMessage.edit({ embeds: [embed] });
+          const editedMessage = await lastMessage.edit({ embeds });
           this.lastMessageId = editedMessage.id; // Update stored ID
           console.log('[LeaderboardService] Message edited successfully');
           console.log('[LeaderboardService] ✓ Leaderboard updated (edited existing message).');
@@ -348,7 +395,7 @@ export class LeaderboardService {
           if (!lastMessage) {
             try {
               console.log('[LeaderboardService] Attempting to send new message after edit failed...');
-              const newMessage = await textChannel.send({ embeds: [embed] });
+              const newMessage = await textChannel.send({ embeds });
               this.lastMessageId = newMessage.id; // Store new message ID
               console.log('[LeaderboardService] New message sent successfully');
               console.log('[LeaderboardService] ✓ Leaderboard updated (sent new message after edit failed).');
@@ -369,7 +416,7 @@ export class LeaderboardService {
         console.log('[LeaderboardService] No bot message found in channel');
         console.log('[LeaderboardService] Sending new leaderboard message...');
         try {
-          const newMessage = await textChannel.send({ embeds: [embed] });
+          const newMessage = await textChannel.send({ embeds });
           this.lastMessageId = newMessage.id; // Store new message ID
           console.log('[LeaderboardService] New message sent successfully');
           console.log('[LeaderboardService] ✓ Leaderboard updated (sent new message).');
@@ -538,70 +585,85 @@ export class LeaderboardService {
   }
 
   /**
-   * Generate the leaderboard embed with top 10 users
+   * Generate leaderboard embeds: all-time + monthly. honorPoints is never modified.
    */
-  private async generateEmbed(): Promise<EmbedBuilder> {
+  private async generateEmbeds(): Promise<EmbedBuilder[]> {
     try {
-      // Fetch top 10 users sorted by honorPoints descending
-      const topUsers = await User.find({})
-        .sort({ honorPoints: -1 })
-        .limit(10)
-        .lean();
+      const allUsers = await User.find({}).lean();
 
-      // Build the description with rankings
-      let description = '';
+      // All-time: top 10 by honorPoints
+      const allTimeTop = [...allUsers]
+        .sort((a, b) => (b.honorPoints ?? 0) - (a.honorPoints ?? 0))
+        .slice(0, 10);
 
-      if (topUsers.length === 0) {
-        description = '*No warriors have earned honor points yet. Be the first!*';
-      } else {
-        for (let i = 0; i < topUsers.length; i++) {
-          const user = topUsers[i];
-          const rank = i + 1;
-          const honorPoints = user.honorPoints || 0;
+      const allTimeDesc = allTimeTop.length === 0
+        ? '*No warriors have earned honor points yet. Be the first!*'
+        : allTimeTop
+            .map((user, i) => {
+              const rank = i + 1;
+              const pts = user.honorPoints ?? 0;
+              const emoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+              return `${emoji} ${rank}. <@${user.userId}> - **${pts.toLocaleString()}** Honor`;
+            })
+            .join('\n');
 
-          // Add medal emojis for top 3
-          let rankEmoji = '';
-          if (rank === 1) {
-            rankEmoji = '🥇';
-          } else if (rank === 2) {
-            rankEmoji = '🥈';
-          } else if (rank === 3) {
-            rankEmoji = '🥉';
-          }
+      const allTimeEmbed = new EmbedBuilder()
+        .setColor(0x8b0000)
+        .setTitle('📜 Jianghu Rankings – All Time (Top 10)')
+        .setDescription(allTimeDesc)
+        .setTimestamp();
 
-          // Format: 🥇 1. <@userId> - 5000 Honor
-          description += `${rankEmoji} ${rank}. <@${user.userId}> - **${honorPoints.toLocaleString()}** Honor\n`;
-        }
-      }
+      // Monthly: top 10 by (honorPoints - honorPointsAtMonthStart)
+      const now = new Date();
+      const monthLabel = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
 
-      const embed = new EmbedBuilder()
-        .setColor(0x8b0000) // Dark red (Wuxia theme)
-        .setTitle('📜 Jianghu Rankings (Top 10)')
-        .setDescription(description)
+      const withMonthly = allUsers.map((u) => ({
+        ...u,
+        monthlyPoints: (u.honorPoints ?? 0) - (u.honorPointsAtMonthStart ?? 0),
+      }));
+
+      const monthlyTop = withMonthly
+        .filter((u) => u.monthlyPoints > 0)
+        .sort((a, b) => b.monthlyPoints - a.monthlyPoints)
+        .slice(0, 10);
+
+      const monthlyDesc =
+        monthlyTop.length === 0
+          ? `*No points earned this month yet (${monthLabel})*`
+          : monthlyTop
+              .map((user, i) => {
+                const rank = i + 1;
+                const pts = user.monthlyPoints;
+                const emoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+                return `${emoji} ${rank}. <@${user.userId}> - **${pts.toLocaleString()}** Honor`;
+              })
+              .join('\n');
+
+      const monthlyEmbed = new EmbedBuilder()
+        .setColor(0x5a3d2b)
+        .setTitle(`📜 Jianghu Rankings – (${monthLabel}) (Top 10)`)
+        .setDescription(monthlyDesc)
         .setFooter({
-          text: `Last Updated: ${new Date().toLocaleString('en-US', {
-            timeZone: 'UTC',
-            year: 'numeric',
+          text: `Last Updated: ${now.toLocaleString('en-US', {
+            timeZone: 'Asia/Bangkok',
             month: 'short',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
-            second: '2-digit',
-            timeZoneName: 'short',
           })}`,
         })
         .setTimestamp();
 
-      return embed;
+      return [allTimeEmbed, monthlyEmbed];
     } catch (error) {
-      console.error('[LeaderboardService] Error generating embed:', error);
-
-      // Return error embed if something goes wrong
-      return new EmbedBuilder()
-        .setColor(0xff0000)
-        .setTitle('❌ Error Loading Leaderboard')
-        .setDescription('An error occurred while loading the leaderboard. Please try again later.')
-        .setTimestamp();
+      console.error('[LeaderboardService] Error generating embeds:', error);
+      return [
+        new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle('❌ Error Loading Leaderboard')
+          .setDescription('An error occurred while loading the leaderboard. Please try again later.')
+          .setTimestamp(),
+      ];
     }
   }
 }

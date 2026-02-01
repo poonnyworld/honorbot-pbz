@@ -30,3 +30,6 @@ yarn-error.log*
 
 # Documentation (presentation documents - not needed in repo)
 docs/presentation/
+
+# Database backups (sensitive - never commit)
+database-backups/

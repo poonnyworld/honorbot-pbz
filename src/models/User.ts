@@ -13,6 +13,9 @@ export interface IUser extends Document {
   lastCheckinDate: Date;
   dailyLuckyDrawCount: number; // Number of lucky draw plays today
   lastLuckyDrawDate: Date; // Last date when lucky draw was played
+  /** Snapshot of honorPoints at start of month - for monthly leaderboard. NEVER modifies honorPoints. */
+  honorPointsAtMonthStart: number;
+  lastMonthlySnapshotAt: Date; // Last time we saved the snapshot (start of month)
   createdAt?: Date; // Added by mongoose timestamps
   updatedAt?: Date; // Added by mongoose timestamps
 }
@@ -68,6 +71,15 @@ const UserSchema: Schema = new Schema(
     lastLuckyDrawDate: {
       type: Date,
       default: new Date(0), // Set to epoch to allow first play
+    },
+    // Monthly leaderboard: snapshot at start of month. honorPoints is NEVER decreased.
+    honorPointsAtMonthStart: {
+      type: Number,
+      default: 0,
+    },
+    lastMonthlySnapshotAt: {
+      type: Date,
+      default: new Date(0),
     },
   },
   {

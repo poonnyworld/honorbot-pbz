@@ -10,7 +10,8 @@
     "watch": "tsc --watch",
     "deploy": "ts-node src/deploy-commands.ts",
     "deploy:prod": "node dist/deploy-commands.js",
-    "clear-commands": "ts-node src/clear-commands.ts"
+    "clear-commands": "ts-node src/clear-commands.ts",
+    "migrate:monthly": "ts-node migrate-monthly-snapshot.ts"
   },
   "keywords": [
     "discord",
