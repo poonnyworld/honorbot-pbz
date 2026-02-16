@@ -170,6 +170,14 @@ export async function execute(message: Message): Promise<void> {
       });
     }
 
+    // Trigger leaderboard update (non-blocking)
+    const leaderboardService = serviceRegistry.getLeaderboardService();
+    if (leaderboardService) {
+      leaderboardService.triggerUpdate().catch((error) => {
+        console.error('[Points] Error triggering leaderboard update:', error);
+      });
+    }
+
     // No reaction feedback - users should check status via /status command
   } catch (error) {
     console.error('Error processing message for honor points:', error);

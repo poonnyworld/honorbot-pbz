@@ -58,7 +58,9 @@ client.once('ready', async () => {
   // Register service in registry for event handlers to access
   const { serviceRegistry } = await import('./services/ServiceRegistry');
   serviceRegistry.setStatusLogService(statusLogService);
+  serviceRegistry.setLeaderboardService(leaderboardService);
   console.log('[Index] StatusLogService initialization called.');
+  console.log('[Index] LeaderboardService registered in ServiceRegistry.');
 
   // Wait a bit to ensure all guilds and channels are cached
   console.log('[Index] Waiting 2 seconds for Discord cache to populate...');

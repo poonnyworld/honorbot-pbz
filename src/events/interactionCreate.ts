@@ -14,6 +14,7 @@ import * as gambleCommand from '../commands/gamble';
 import { User } from '../models/User';
 import mongoose from 'mongoose';
 import { MONGODB_CONNECTED } from '../utils/connectDB';
+import { serviceRegistry } from '../services/ServiceRegistry';
 
 export const name = Events.InteractionCreate;
 
@@ -249,6 +250,14 @@ async function handleDailyButton(interaction: ButtonInteraction): Promise<void> 
     user.lastDailyReset = now;
     await user.save();
 
+    // Trigger leaderboard update (non-blocking)
+    const leaderboardService = serviceRegistry.getLeaderboardService();
+    if (leaderboardService) {
+      leaderboardService.triggerUpdate().catch((error) => {
+        console.error('[Daily] Error triggering leaderboard update:', error);
+      });
+    }
+
     // Create embed response
     const embed = new EmbedBuilder()
       .setColor(0x8b0000)
@@ -345,12 +354,8 @@ async function handleGambleButton(interaction: ButtonInteraction): Promise<void>
     .setPlaceholder('Enter amount between 1-5')
     .setRequired(true)
     .setMaxLength(1)
-    .setMinLength(1);
-
-  const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(choiceInput);
-  const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(betInput);
-
-  modal.addComponents(firstActionRow, secondActionRow);  await interaction.showModal(modal);
+    .setMinLength(1);  const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(choiceInput);
+  const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(betInput);  modal.addComponents(firstActionRow, secondActionRow);  await interaction.showModal(modal);
 }/**
  * Handle the coin flip modal submission
  */
@@ -363,9 +368,7 @@ async function handleGambleModal(interaction: any): Promise<void> {
         content: '❌ Database connection is not available. Please try again later.',
       });
       return;
-    }
-
-    const choice = interaction.fields.getTextInputValue('gamble_choice')?.toLowerCase().trim();
+    }    const choice = interaction.fields.getTextInputValue('gamble_choice')?.toLowerCase().trim();
     const betAmountStr = interaction.fields.getTextInputValue('gamble_bet')?.trim();
 
     // Validate choice
@@ -495,6 +498,14 @@ async function handleGambleModal(interaction: any): Promise<void> {
     user.dailyLuckyDrawCount += 1;
     user.lastLuckyDrawDate = now;
     await user.save();
+
+    // Trigger leaderboard update (non-blocking)
+    const leaderboardService = serviceRegistry.getLeaderboardService();
+    if (leaderboardService) {
+      leaderboardService.triggerUpdate().catch((error) => {
+        console.error('[Gamble] Error triggering leaderboard update:', error);
+      });
+    }
 
     // Create result embed
     const userChoiceText = userChoice === 'heads' ? 'Heads' : 'Tails';

@@ -1,4 +1,5 @@
 import { StatusLogService } from './StatusLogService';
+import { LeaderboardService } from './LeaderboardService';
 
 /**
  * Service registry to avoid circular dependencies
@@ -6,6 +7,7 @@ import { StatusLogService } from './StatusLogService';
  */
 class ServiceRegistry {
   private statusLogService: StatusLogService | null = null;
+  private leaderboardService: LeaderboardService | null = null;
 
   public setStatusLogService(service: StatusLogService): void {
     this.statusLogService = service;
@@ -13,6 +15,14 @@ class ServiceRegistry {
 
   public getStatusLogService(): StatusLogService | null {
     return this.statusLogService;
+  }
+
+  public setLeaderboardService(service: LeaderboardService): void {
+    this.leaderboardService = service;
+  }
+
+  public getLeaderboardService(): LeaderboardService | null {
+    return this.leaderboardService;
   }
 }
 
