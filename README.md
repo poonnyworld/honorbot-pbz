@@ -70,7 +70,7 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 
 **Note:** Regular user commands are blocked. Only administrators can use slash commands for backend management.
 
-- **`/backup export`** - Export entire database backup (Administrator only, sent via DM)
+- **`/backup export`** - Export database backup (Administrator only; sent to backup channel if `BACKUP_DATABASE_CHANNEL_ID` is set, else DM)
 - **`/backup import <file>`** - Import database backup from JSON file (Administrator only)
 - **`/reset database`** - Reset the entire database - WARNING: This will delete ALL user data! (Administrator only, requires confirmation)
 
@@ -106,7 +106,7 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 
 ### 👑 Admin Commands
 
-- **`/backup export`** - Export entire database backup (Administrator only, sent via DM)
+- **`/backup export`** - Export database backup (Administrator only; sent to backup channel if `BACKUP_DATABASE_CHANNEL_ID` is set, else DM)
 - **`/backup import <file>`** - Import database backup from JSON file (Administrator only)
 - **`/reset database`** - Reset the entire database - WARNING: This will delete ALL user data! (Administrator only, requires confirmation)
 
@@ -396,6 +396,8 @@ docker run -d \
 | `STATUS_CHANNEL_ID`          | Channel ID for status log (point distribution log)      | ✅ Yes   | -                       |
 | `GAMBLE_CHANNEL_ID`          | Channel ID for gamble button                            | ✅ Yes   | -                       |
 | `LUCKYDRAW_CHANNEL_ID`       | Channel ID for lucky draw button (optional feature)     | ❌ No    | -                       |
+| `BACKUP_DATABASE_CHANNEL_ID` | Channel for DB backup (export + scheduled 12h backup)   | ❌ No    | -                       |
+| `BACKUP_LEADERBOARD_CHANNEL_ID` | Channel for monthly leaderboard export (JSON + embed) | ❌ No    | -                       |
 | `INSTRUCTION_CHANNEL_ID`     | Channel ID for instruction guide                        | ✅ Yes   | -                       |
 | `PORT`                       | Web dashboard port                                      | ❌ No    | `3000`                  |
 | `WEB_USER`                   | Admin panel username                                    | ❌ No    | `admin`                 |
@@ -440,6 +442,8 @@ The bot uses persistent buttons in dedicated channels. Each channel requires a c
 - **`LUCKYDRAW_CHANNEL_ID`** - Lucky draw button (optional - feature disabled if not set)
 - **`INSTRUCTION_CHANNEL_ID`** - Instruction guide (comprehensive guide for all features)
 - **`LEADERBOARD_CHANNEL_ID`** - Hall of Fame (auto-updating leaderboard, no button needed)
+- **`BACKUP_DATABASE_CHANNEL_ID`** (optional) - Channel for DB backup: `/backup export` and auto backup every 12h (00:00 & 12:00 Bangkok time)
+- **`BACKUP_LEADERBOARD_CHANNEL_ID`** (optional) - Channel for monthly leaderboard export: JSON file + embed table on the 1st of each month (Asia/Bangkok)
 
 **Setup:**
 
@@ -548,8 +552,16 @@ See [`BUTTON_SETUP.md`](./BUTTON_SETUP.md) for detailed setup instructions.
 #### Exporting Database
 
 1. In Discord, use the `/backup export` command (Administrator only)
-2. The bot will send you a JSON file via Direct Message
-3. Save this file securely - it contains all user data
+2. If `BACKUP_DATABASE_CHANNEL_ID` is set, the bot sends the JSON file to that channel; otherwise it sends via DM
+3. Save backup files securely - they contain all user data
+
+**Scheduled backup:** The bot sends a full database backup to `BACKUP_DATABASE_CHANNEL_ID` every 12 hours (00:00 and 12:00 Bangkok time) if the channel is set.
+
+#### Monthly Leaderboard Export
+
+If `BACKUP_LEADERBOARD_CHANNEL_ID` is set, on the **1st of each month at 00:00 (Asia/Bangkok)** the bot sends to that channel:
+- A **JSON file** (`leaderboard_YYYY-MM.json`) with the previous month's Top 10 (rank, userId, username, honorPoints, monthlyPoints)
+- An **embed** with the same ranking in table form (Jianghu Rankings style)
 
 #### Importing Database
 

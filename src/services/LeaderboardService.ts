@@ -1,5 +1,5 @@
 import * as cron from 'node-cron';
-import { Client, TextChannel, EmbedBuilder, Message, Collection, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageComponent } from 'discord.js';
+import { Client, TextChannel, EmbedBuilder, Message, Collection, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageComponent, AttachmentBuilder } from 'discord.js';
 import { User } from '../models/User';
 
 export class LeaderboardService {
@@ -75,14 +75,15 @@ export class LeaderboardService {
     this.monthlyCronJob = cron.schedule(
       '0 0 1 * *',
       async () => {
-        console.log('[LeaderboardService] ⏰ ========== MONTHLY SNAPSHOT ==========');
+        console.log('[LeaderboardService] ⏰ ========== MONTHLY (Export + Snapshot) ==========');
         try {
+          await this.exportMonthlyLeaderboardToChannel();
           await this.updateMonthlySnapshot();
-          console.log('[LeaderboardService] ✓ Monthly snapshot completed');
+          console.log('[LeaderboardService] ✓ Monthly export and snapshot completed');
         } catch (err) {
-          console.error('[LeaderboardService] ❌ Monthly snapshot failed:', err);
+          console.error('[LeaderboardService] ❌ Monthly export/snapshot failed:', err);
         }
-        console.log('[LeaderboardService] ========== MONTHLY SNAPSHOT END ==========');
+        console.log('[LeaderboardService] ========== MONTHLY END ==========');
       },
       { timezone: 'Asia/Bangkok' }
     );
@@ -125,6 +126,78 @@ export class LeaderboardService {
     }
     console.log('[LeaderboardService] Leaderboard service stopped.');
     this.client = null;
+  }
+
+  /**
+   * Export monthly leaderboard (previous month) to BACKUP_LEADERBOARD_CHANNEL_ID as JSON + embed.
+   * Called at 00:00 on 1st of month (Asia/Bangkok) before updateMonthlySnapshot().
+   */
+  private async exportMonthlyLeaderboardToChannel(): Promise<void> {
+    const channelId = (process.env.BACKUP_LEADERBOARD_CHANNEL_ID ?? '').trim();
+    if (!channelId || !/^\d{17,19}$/.test(channelId) || !this.client) return;
+
+    const now = new Date();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const monthLabel = prevMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const fileMonth = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+
+    const allUsers = await User.find({}).lean();
+    const withMonthly = allUsers.map((u) => ({
+      userId: u.userId,
+      username: u.username,
+      honorPoints: u.honorPoints ?? 0,
+      monthlyPoints: (u.honorPoints ?? 0) - (u.honorPointsAtMonthStart ?? 0),
+    }));
+    const top10 = withMonthly
+      .filter((u) => u.monthlyPoints > 0)
+      .sort((a, b) => b.monthlyPoints - a.monthlyPoints)
+      .slice(0, 10)
+      .map((u, i) => ({ rank: i + 1, ...u }));
+
+    const payload = {
+      month: monthLabel,
+      exportedAt: now.toISOString(),
+      top10,
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const attachment = new AttachmentBuilder(Buffer.from(json, 'utf-8'), {
+      name: `leaderboard_${fileMonth}.json`,
+    });
+
+    const desc =
+      top10.length === 0
+        ? `*No points earned in ${monthLabel}*`
+        : top10
+            .map((u) => {
+              const emoji = u.rank === 1 ? '🥇' : u.rank === 2 ? '🥈' : u.rank === 3 ? '🥉' : '';
+              return `${emoji} ${u.rank}. <@${u.userId}> - **${u.monthlyPoints.toLocaleString()}** Honor`;
+            })
+            .join('\n');
+
+    const embed = new EmbedBuilder()
+      .setColor(0x5a3d2b)
+      .setTitle(`📜 Jianghu Rankings – (${monthLabel}) (Top 10)`)
+      .setDescription(desc)
+      .setFooter({
+        text: `Last Updated: ${now.toLocaleString('en-US', {
+          timeZone: 'Asia/Bangkok',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })}`,
+      })
+      .setTimestamp();
+
+    try {
+      const channel = await this.client.channels.fetch(channelId);
+      if (channel?.isTextBased()) {
+        await (channel as TextChannel).send({ embeds: [embed], files: [attachment] });
+        console.log('[LeaderboardService] ✓ Monthly leaderboard exported to channel', channelId);
+      }
+    } catch (err) {
+      console.error('[LeaderboardService] Failed to send monthly leaderboard to channel:', err);
+    }
   }
 
   /**
