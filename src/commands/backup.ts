@@ -3,6 +3,7 @@ import {
   ChatInputCommandInteraction,
   AttachmentBuilder,
   PermissionFlagsBits,
+  TextChannel,
 } from 'discord.js';
 import { BackupService } from '../services/BackupService';
 
@@ -13,7 +14,7 @@ export const data = new SlashCommandBuilder()
   .addSubcommand((subcommand) =>
     subcommand
       .setName('export')
-      .setDescription('Export database to JSON file (sent as DM)')
+      .setDescription('Export database to JSON → ส่งลงช่อง backup (หรือ DM ถ้าไม่ได้ตั้งช่อง)')
   )
   .addSubcommand((subcommand) =>
     subcommand
@@ -55,19 +56,44 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
       // Create attachment
       const attachment = new AttachmentBuilder(buffer, { name: filename });
+      const backupChannelId = (process.env.BACKUP_DATABASE_CHANNEL_ID ?? '').trim();
 
-      // Try to send as DM first, fallback to ephemeral reply
+      if (!backupChannelId || !/^\d{17,19}$/.test(backupChannelId)) {
+        console.log('[Backup] BACKUP_DATABASE_CHANNEL_ID not set or invalid, using DM');
+      }
+
+      // ส่งลงช่อง backup ก่อน (ถ้ามี) ไม่ส่ง DM
+      if (backupChannelId && /^\d{17,19}$/.test(backupChannelId)) {
+        try {
+          const channel = await interaction.client.channels.fetch(backupChannelId);
+          if (channel?.isTextBased()) {
+            await (channel as TextChannel).send({
+              content: `📦 **Database Backup** (requested by ${interaction.user.tag})\n\n\`${filename}\`\n*Keep this file secure!*`,
+              files: [attachment],
+            });
+            await interaction.editReply({
+              content: `✅ ส่ง backup ไปที่ <#${backupChannelId}> แล้ว`,
+            });
+            console.log('[Backup] Export sent to channel', backupChannelId, 'by', interaction.user.tag);
+            return;
+          }
+          console.warn('[Backup] Channel', backupChannelId, 'is not text channel');
+        } catch (channelError) {
+          const err = channelError instanceof Error ? channelError.message : String(channelError);
+          console.warn('[Backup] Failed to send to backup channel, falling back to DM. Error:', err);
+        }
+      }
+
+      // Fallback: try DM, then ephemeral reply
       try {
         await interaction.user.send({
           content: '📦 **Database Backup**\n\nYour database backup file is attached below. Keep this file secure!',
           files: [attachment],
         });
-
         await interaction.editReply({
           content: '✅ Database backup exported successfully! Check your DMs for the file.',
         });
       } catch (dmError) {
-        // If DM fails (DMs disabled), send as ephemeral reply instead
         console.warn('[Backup] Failed to send DM, using ephemeral reply instead:', dmError);
         await interaction.editReply({
           content: '✅ Database backup exported successfully!',

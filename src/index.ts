@@ -8,6 +8,7 @@ import { LeaderboardService } from './services/LeaderboardService';
 // import { LuckyDrawService } from './services/LuckyDrawService';
 import { UserInteractionService } from './services/UserInteractionService';
 import { StatusLogService } from './services/StatusLogService';
+import { BackupSchedulerService } from './services/BackupSchedulerService';
 import { startDashboard } from './dashboard/server';
 
 dotenv.config();
@@ -27,6 +28,7 @@ const leaderboardService = new LeaderboardService();
 // const luckyDrawService = new LuckyDrawService();
 const userInteractionService = new UserInteractionService();
 const statusLogService = new StatusLogService();
+const backupSchedulerService = new BackupSchedulerService();
 
 // Start dashboard server and pass leaderboardService instance
 // This allows the dashboard API to trigger manual leaderboard updates
@@ -62,6 +64,13 @@ client.once('ready', async () => {
   console.log('[Index] StatusLogService initialization called.');
   console.log('[Index] LeaderboardService registered in ServiceRegistry.');
 
+  // Start backup scheduler (every 12h → BACKUP_DATABASE_CHANNEL_ID)
+  const backupChId = process.env.BACKUP_DATABASE_CHANNEL_ID?.trim();
+  console.log('[Index] BACKUP_DATABASE_CHANNEL_ID:', backupChId ? backupChId : '(not set)');
+  console.log('[Index] Initializing BackupSchedulerService...');
+  backupSchedulerService.start(client);
+  console.log('[Index] BackupSchedulerService initialization called.');
+
   // Wait a bit to ensure all guilds and channels are cached
   console.log('[Index] Waiting 2 seconds for Discord cache to populate...');
   await new Promise(resolve => setTimeout(resolve, 2000));
@@ -75,6 +84,7 @@ process.on('SIGINT', () => {
   // luckyDrawService.stop();
   userInteractionService.stop();
   statusLogService.stop();
+  backupSchedulerService.stop();
   process.exit(0);
 });
 
@@ -85,6 +95,7 @@ process.on('SIGTERM', () => {
   // luckyDrawService.stop();
   userInteractionService.stop();
   statusLogService.stop();
+  backupSchedulerService.stop();
   process.exit(0);
 });
 
