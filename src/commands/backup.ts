@@ -6,6 +6,7 @@ import {
   TextChannel,
 } from 'discord.js';
 import { BackupService } from '../services/BackupService';
+import { serviceRegistry } from '../services/ServiceRegistry';
 
 export const data = new SlashCommandBuilder()
   .setName('backup')
@@ -26,6 +27,11 @@ export const data = new SlashCommandBuilder()
           .setDescription('JSON backup file to import')
           .setRequired(true)
       )
+  )
+  .addSubcommand((subcommand) =>
+    subcommand
+      .setName('export-monthly')
+      .setDescription('Send last month\'s Top 10 leaderboard to BACKUP_LEADERBOARD_CHANNEL_ID (Bangkok time)')
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -155,6 +161,31 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         console.error('[Backup] Error fetching file:', fetchError);
         await interaction.editReply({
           content: '❌ Failed to download the backup file. Please try again.',
+        });
+      }
+    } else if (subcommand === 'export-monthly') {
+      const channelId = (process.env.BACKUP_LEADERBOARD_CHANNEL_ID ?? '').trim();
+      if (!channelId || !/^\d{17,19}$/.test(channelId)) {
+        await interaction.editReply({
+          content: '❌ `BACKUP_LEADERBOARD_CHANNEL_ID` is not set or invalid in .env',
+        });
+        return;
+      }
+      const leaderboardService = serviceRegistry.getLeaderboardService();
+      if (!leaderboardService) {
+        await interaction.editReply({
+          content: '❌ Leaderboard service is not available.',
+        });
+        return;
+      }
+      const ok = await leaderboardService.exportMonthlyLeaderboardNow();
+      if (ok) {
+        await interaction.editReply({
+          content: `✅ ส่งตารางคะแนนรายเดือน (เดือนที่เพิ่งจบ ตามเวลาไทย) ไปที่ <#${channelId}> แล้ว`,
+        });
+      } else {
+        await interaction.editReply({
+          content: '❌ ส่งตารางรายเดือนไม่สำเร็จ ดู log ใน console',
         });
       }
     }

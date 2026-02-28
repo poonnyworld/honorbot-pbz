@@ -129,17 +129,37 @@ export class LeaderboardService {
   }
 
   /**
+   * Manually trigger export of last month's leaderboard to BACKUP_LEADERBOARD_CHANNEL_ID (same as scheduled).
+   * Uses Bangkok timezone for "previous month". Use to correct a wrong label or re-send.
+   */
+  public async exportMonthlyLeaderboardNow(): Promise<boolean> {
+    try {
+      await this.exportMonthlyLeaderboardToChannel();
+      return true;
+    } catch (err) {
+      console.error('[LeaderboardService] exportMonthlyLeaderboardNow failed:', err);
+      return false;
+    }
+  }
+
+  /**
    * Export monthly leaderboard (previous month) to BACKUP_LEADERBOARD_CHANNEL_ID as JSON + embed.
    * Called at 00:00 on 1st of month (Asia/Bangkok) before updateMonthlySnapshot().
+   * Uses Bangkok timezone so "previous month" is correct when server is in UTC.
    */
   private async exportMonthlyLeaderboardToChannel(): Promise<void> {
     const channelId = (process.env.BACKUP_LEADERBOARD_CHANNEL_ID ?? '').trim();
     if (!channelId || !/^\d{17,19}$/.test(channelId) || !this.client) return;
 
     const now = new Date();
-    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const monthLabel = prevMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-    const fileMonth = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+    // Use Bangkok time so at 00:00 on 1st (Bangkok) we export the month that just ended (e.g. February)
+    const bangkokYear = parseInt(now.toLocaleString('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric' }), 10);
+    const bangkokMonth = parseInt(now.toLocaleString('en-CA', { timeZone: 'Asia/Bangkok', month: '2-digit' }), 10);
+    const prevMonthIndex = bangkokMonth === 1 ? 11 : bangkokMonth - 2; // 0-based month for Date
+    const prevYear = bangkokMonth === 1 ? bangkokYear - 1 : bangkokYear;
+    const prevMonthDate = new Date(prevYear, prevMonthIndex, 1);
+    const monthLabel = prevMonthDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const fileMonth = `${prevYear}-${String(prevMonthIndex + 1).padStart(2, '0')}`;
 
     const allUsers = await User.find({}).lean();
     const withMonthly = allUsers.map((u) => ({
@@ -688,7 +708,7 @@ export class LeaderboardService {
 
       // Monthly: top 10 by (honorPoints - honorPointsAtMonthStart)
       const now = new Date();
-      const monthLabel = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      const monthLabel = now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok', month: 'long', year: 'numeric' });
 
       const withMonthly = allUsers.map((u) => ({
         ...u,
