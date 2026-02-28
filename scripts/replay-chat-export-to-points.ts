@@ -11,8 +11,9 @@
  * - Author: "Author", "Username", "User", "Name"
  * - Optional Author ID: "Author ID", "User ID", "UserId" → matches DB userId
  *
- * Run: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx>
- * Example: npx ts-node scripts/replay-chat-export-to-points.ts "/path/to/PBZ | General Chat (EN)-2.xlsx"
+ * Run: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx> [--after-date=ISO_DATE]
+ * Example: npx ts-node scripts/replay-chat-export-to-points.ts "/path/to/export.xlsx"
+ * Example (only messages on or after 7:22 AM Thailand): npx ts-node scripts/replay-chat-export-to-points.ts "/path/to/export.xlsx" --after-date=2026-02-28T00:22:00
  */
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
@@ -52,11 +53,32 @@ function toDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+function parseArgs(): { filePath: string; afterDate: Date | null } {
+  const args = process.argv.slice(2);
+  let filePath = '';
+  let afterDate: Date | null = null;
+  for (const arg of args) {
+    if (arg.startsWith('--after-date=')) {
+      const val = arg.slice('--after-date='.length).trim();
+      if (val) {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) afterDate = d;
+      }
+    } else if (!filePath) {
+      filePath = arg;
+    }
+  }
+  return { filePath, afterDate };
+}
+
 async function main() {
-  const filePath = process.argv[2];
+  const { filePath, afterDate } = parseArgs();
   if (!filePath) {
-    console.error('Usage: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx>');
+    console.error('Usage: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx> [--after-date=ISO_DATE]');
     process.exit(1);
+  }
+  if (afterDate) {
+    console.log('Filter: only messages on or after', afterDate.toISOString());
   }
 
   console.log('Reading:', filePath);
@@ -106,6 +128,7 @@ async function main() {
     const dateVal = row[dateCol];
     const date = parseDate(dateVal);
     if (!date) continue;
+    if (afterDate && date < afterDate) continue;
 
     let authorKey: string;
     const authorIdVal = authorIdCol >= 0 ? row[authorIdCol] : undefined;

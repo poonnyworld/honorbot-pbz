@@ -186,6 +186,7 @@ GUILD_ID=your_discord_guild_id_here
 # MongoDB Configuration
 MONGO_URI=mongodb://localhost:27017/honorbot
 # For Docker Compose, use: mongodb://mongodb:27017/honorbot
+# For local testing without affecting VPS/production: use a different DB name, e.g. mongodb://localhost:27017/honorbot_local
 
 # Button Channels (Required)
 DAILYCHECKING_CHANNEL_ID=your_daily_checkin_channel_id
@@ -354,10 +355,12 @@ docker-compose exec app npm run deploy
 docker-compose down
 ```
 
-To also remove volumes (⚠️ **WARNING:** This deletes your database):
+ใช้คำสั่งนี้เวลา stop/restart ปกติ — **ข้อมูลใน MongoDB ยังอยู่** เพราะเก็บใน volume
+
+⚠️ **อย่าใช้ `-v`** ถ้าต้องการเก็บข้อมูล (คำสั่งด้านล่างจะ**ลบ volume = ลบ database**):
 
 ```bash
-docker-compose down -v
+docker-compose down -v   # ลบ volumes ด้วย = ข้อมูลหายหมด
 ```
 
 ### Manual Docker Build

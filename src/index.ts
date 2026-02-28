@@ -67,6 +67,8 @@ client.once('ready', async () => {
   // Start backup scheduler (every 12h → BACKUP_DATABASE_CHANNEL_ID)
   const backupChId = process.env.BACKUP_DATABASE_CHANNEL_ID?.trim();
   console.log('[Index] BACKUP_DATABASE_CHANNEL_ID:', backupChId ? backupChId : '(not set)');
+  const backupLeaderboardChId = process.env.BACKUP_LEADERBOARD_CHANNEL_ID?.trim();
+  console.log('[Index] BACKUP_LEADERBOARD_CHANNEL_ID:', backupLeaderboardChId ? backupLeaderboardChId : '(not set) — monthly export at 00:00 on 1st (Asia/Bangkok) disabled');
   console.log('[Index] Initializing BackupSchedulerService...');
   backupSchedulerService.start(client);
   console.log('[Index] BackupSchedulerService initialization called.');

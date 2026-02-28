@@ -16,6 +16,25 @@
 
 ---
 
+## ตรวจสาเหตุหลังข้อมูลหาย (Root cause checks)
+
+หลังกู้คืนแล้ว ถ้าต้องการสืบหาสาเหตุที่แต้มหาย แนะนำให้ตรวจตามลำดับนี้:
+
+1. **Discord Audit Log**  
+   ในเซิร์ฟเวอร์ Discord: Server Settings → Audit Log  
+   - ค้นหาการใช้คำสั่ง `/reset` หรือการลบข้อความที่เกี่ยวกับ backup  
+   - ดูว่ามีผู้มีสิทธิ์ Administrator ใช้คำสั่ง reset หรือไม่
+
+2. **ประวัติคำสั่ง Docker บนโฮสต์**  
+   - ตรวจว่ามีการรัน `docker-compose down -v` หรือ `docker compose down -v` หรือไม่ (ตัว `-v` จะลบ volume ทำให้ข้อมูล MongoDB หาย)  
+   - ตรวจ `docker volume ls` ว่ามี volume `*mongodb_data*` ของโปรเจกต์นี้อยู่หรือไม่
+
+3. **Log ของ container บอท**  
+   - รัน `docker compose logs app` (หรือ `docker-compose logs honorbot-app`) แล้วค้นหาบรรทัด `[Reset] Database reset completed by`  
+   - ถ้ามี แสดงว่ามีการกด confirm คำสั่ง `/reset database` จาก Discord
+
+---
+
 ## กู้คืนได้หรือไม่
 
 **กู้คืนได้** ถ้ามีไฟล์ backup ที่ยังเก็บข้อมูล Honor Points ไว้อยู่
@@ -92,7 +111,13 @@ cd /root/honorbot-pbz
 npx ts-node scripts/replay-chat-export-to-points.ts "/path/to/PBZ | General Chat (EN)-2.xlsx"
 ```
 
-คำแนะนำ: ควร **restore จาก backup วันที่ 18 ก.พ. ก่อน** แล้วค่อยรัน replay จาก Excel เพื่อเพิ่มเฉพาะส่วนที่เกิดจากข้อความในแชท (Daily Check-in ยังไม่ได้นับจาก Excel ต้องพึ่ง backup หรือยอมรับว่าช่วงนั้นไม่มีการ replay)
+**ตัวเลือก `--after-date`:** ถ้า restore จาก backup ณ เวลาหนึ่ง (เช่น 7:22 น.) และต้องการนับเฉพาะข้อความที่ส่ง *หลัง* เวลานั้น ให้ใส่ `--after-date=ISO_DATE` (เวลาเป็น UTC):
+
+```bash
+npx ts-node scripts/replay-chat-export-to-points.ts "/path/to/export.xlsx" --after-date=2026-02-28T00:22:00
+```
+
+คำแนะนำ: ควร **restore จาก backup ก่อน** แล้วค่อยรัน replay จาก Excel เพื่อเพิ่มเฉพาะส่วนที่เกิดจากข้อความในแชท (Daily Check-in ยังไม่ได้นับจาก Excel ต้องพึ่ง backup หรือยอมรับว่าช่วงนั้นไม่มีการ replay)
 
 ---
 
@@ -101,6 +126,52 @@ npx ts-node scripts/replay-chat-export-to-points.ts "/path/to/PBZ | General Chat
 เมื่อ restore จาก backup ใดๆ ข้อมูลใน DB จะเป็น **สถานะ ณ วันที่ที่ export backup นั้น**  
 บอทไม่ได้เก็บประวัติการแชทหรือการกด Daily Check-in แยกไว้ จึง **ไม่สามารถย้อนเล่น (replay) ประวัติเพื่อให้แต้มเป็น “ปัจจุบัน”** ได้  
 ทางเลือกที่เป็นไปได้: restore จาก backup ล่าสุดที่คุณมี แล้วให้ผู้ใช้สะสมแต้มต่อจากจุดนั้น
+
+---
+
+## ทำไม restart container แล้วข้อมูลหายหมด
+
+โดยปกติ **การ restart container ไม่ควรทำให้ข้อมูลใน MongoDB หาย** เพราะข้อมูลอยู่ใน **volume** (`honorbot-pbz_mongodb_data`) ไม่ได้อยู่ใน container
+
+ข้อมูลจะหายได้เมื่อเกิดแบบใดแบบหนึ่งต่อไปนี้:
+
+1. **รัน `docker-compose down -v`**  
+   ตัว **`-v`** จะลบ volumes ด้วย ดังนั้น `mongodb_data` จะถูกลบ ครั้งถัดไปที่รัน `up` MongoDB จะเริ่มด้วยข้อมูลเปล่า  
+   → **ห้ามใช้ `-v` ถ้าต้องการเก็บข้อมูล** ใช้แค่ `docker-compose down` แล้วค่อย `docker-compose up -d`
+
+2. **รันจากโฟลเดอร์หรือ project ละตัว**  
+   ถ้ารัน `docker-compose` จากคนละโฟลเดอร์หรือคนละชื่อ project Docker จะสร้าง volume คนละตัว (เช่น `honorbot-pbz_mongodb_data` กับ `otherfolder_mongodb_data`)  
+   → ต้องรันจากโฟลเดอร์โปรเจกต์เดิมเสมอ (เช่น `honorbot-pbz`) เพื่อให้ใช้ volume เดิม
+
+3. **Bot ชี้ไปที่ database คนละตัว**  
+   เช่น Local ใช้ `honorbot_local` แต่ VPS ใช้ `honorbot` หรือคนละเครื่องกัน  
+   → ตรวจว่า Discord ที่คุณดูอยู่ต่อกับบอทตัวที่ชี้ไปที่ MongoDB ตัวที่คุณ restore ไว้
+
+4. **Volume ถูกลบด้วยคำสั่งอื่น**  
+   เช่น `docker volume rm` หรือ `docker system prune -a --volumes`  
+   → หลีกเลี่ยงการลบ volume ของโปรเจกต์นี้
+
+**ถ้าข้อมูลหายแล้ว:** ใช้ backup ล่าสุด restore กลับมา (เช่น `phantom_backup_2026-02-27-2.json`) แล้วตั้งค่าให้ชัดเจนว่า Local ใช้ `honorbot_local` VPS ใช้ `honorbot` และอย่าใช้ `down -v` อีก
+
+---
+
+## แยกข้อมูล Local กับ VPS (ไม่ให้ตีกัน)
+
+ถ้าคุณรันบอททั้งบน **เครื่อง Local** (ทดสอบ) และบน **VPS** (production) โดยชี้ไปที่ MongoDB ตัวเดียวกัน หรือใช้ DB ชื่อเดียวกัน ข้อมูลจะทับกัน (ใครรันทีหลังจะเขียนทับอีกฝั่ง)
+
+**วิธีแก้: ใช้คนละ database name**
+
+- **บน VPS (production):** ใช้ database ชื่อ `honorbot` ตามเดิม  
+  ```env
+  MONGO_URI=mongodb://mongodb:27017/honorbot
+  ```
+- **บน Local (ทดสอบ):** ใช้ database อีกชื่อ เช่น `honorbot_local` หรือ `honorbot_dev`  
+  ```env
+  MONGO_URI=mongodb://localhost:27017/honorbot_local
+  ```
+
+เมื่อแยกแบบนี้ Local กับ VPS จะใช้ collection `users` คนละฐานข้อมูล ข้อมูลไม่ทับกัน  
+ถ้าอยาก copy ข้อมูลจาก VPS มาเทสบน Local ให้ export backup จาก VPS แล้วรัน restore script บน Local โดยชี้ `MONGO_URI` ไปที่ `honorbot_local`
 
 ---
 
@@ -114,3 +185,41 @@ npx ts-node scripts/replay-chat-export-to-points.ts "/path/to/PBZ | General Chat
 
 3. **อย่าให้คนที่ไม่ใช่ admin ใช้ `/reset database`**  
    คำสั่ง reset ต้องกด confirm สองครั้ง แต่ควรใช้เฉพาะ admin จริงเท่านั้น
+
+---
+
+## เปิดใช้ Auto Backup (00:00 และ 12:00 น. เวลาไทย)
+
+Backup อัตโนมัติจะทำงานก็ต่อเมื่อ:
+
+1. **ตั้งค่า `BACKUP_DATABASE_CHANNEL_ID` ใน `.env` ของ production**  
+   - ใช้ Channel ID ของช่อง Discord ที่ต้องการรับไฟล์ backup (คลิกขวาที่ช่อง → Copy Channel ID)  
+   - ค่าต้องเป็นตัวเลข 17–19 หลัก  
+   - หลังแก้ `.env` ให้ restart container: `docker compose restart app`
+
+2. **บอทต้องทำงานอยู่ตอน 00:00 และ 12:00 น. (Asia/Bangkok)**  
+   - ถ้า container หยุดหรือ restart ในช่วงนั้น backup จะไม่รัน  
+   - ตรวจว่า container `honorbot-app` มี uptime ครอบคลุมทั้งสองเวลา
+
+3. **ถ้า backup ยังไม่รัน**  
+   - ดู log ตอนสตาร์ทว่ามีข้อความ `[BackupScheduler] BACKUP_DATABASE_CHANNEL_ID not set or invalid` หรือไม่  
+   - ถ้ามี แสดงว่า env ยังไม่ถูกต้องหรือไม่ได้ส่งเข้า container
+
+---
+
+## Export แต้มรายเดือนไปช่อง Backup (เที่ยงคืนสิ้นเดือน)
+
+เมื่อตั้งค่า **`BACKUP_LEADERBOARD_CHANNEL_ID`** ใน `.env` (Channel ID ของช่องที่ต้องการรับไฟล์รายเดือน) บอทจะส่ง **export ข้อมูลแต้มรายเดือน** ไปที่ช่องนั้นอัตโนมัติทุกครั้งที่ถึง **เที่ยงคืนของวันสิ้นเดือน** (เวลา 00:00 น. วันที่ 1 ของเดือนถัดไป เวลาไทย)
+
+- ส่งเป็น **ไฟล์ JSON** (สรุป Top 10 แต้มรายเดือน + ข้อมูลเดือนที่ export)
+- ส่ง **embed** แสดงอันดับรายเดือนในช่องเดียวกัน
+
+ถ้าไม่ตั้ง `BACKUP_LEADERBOARD_CHANNEL_ID` ฟีเจอร์นี้จะไม่ทำงาน (ดู log ตอนสตาร์ทว่า `BACKUP_LEADERBOARD_CHANNEL_ID` เป็น not set หรือไม่)
+
+---
+
+## ระยะยาว: แยก DB ต่อแอปและ backup จากโฮสต์
+
+- **แยก database ต่อแอป:** โปรเจกต์อื่น (เช่น pbz-bounty, phantom-melody) ที่ใช้ MongoDB ตัวเดียวกันกับ Honor Bot ใช้ database ชื่อ `honorbot` และ collection `users` ร่วมกัน เพื่อลดความเสี่ยงการเขียนทับหรือ schema ไม่ตรงกัน แนะนำให้แยก database เช่น ให้ Honor Bot ใช้ `honorbot` เหมือนเดิม และให้แอปอื่นใช้ชื่ออื่น (เช่น `honorbot_bounty`, `phantom_radio`) แล้วตั้ง `MONGO_URI` ของแต่ละแอปให้ชี้ไปที่ database ของตัวเอง
+
+- **Backup จากโฮสต์ (cron):** ถ้าต้องการไม่พึ่งแค่ process บอท สามารถตั้ง cron บนโฮสต์ให้รัน export เป็นระยะได้ เช่น สร้างสคริปต์ที่ต่อ MongoDB แล้วเรียก logic export (หรือใช้ `mongodump`) แล้วเขียนไฟล์ลง `database-backups/` หรือส่งไปที่เก็บอื่น
