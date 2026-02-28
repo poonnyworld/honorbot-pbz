@@ -142,13 +142,38 @@ export async function execute(message: Message): Promise<void> {
     // Distribution: 1 point (80%), 2 points (10%), 3 points (5%), 4 points (3%), 5 points (2%)
     const pointsToAdd = getWeightedRandomPoints();
 
-    // Add Points to honorPoints and increment dailyMessageCount
-    user.honorPoints += pointsToAdd;
-    user.dailyPoints += pointsToAdd; // Keep for backward compatibility
-    user.dailyMessageCount += 1;
-    user.lastMessageDate = now;
+    const isNewDay = today.getTime() > lastReset.getTime();
+    const username = message.author.username;
 
-    await user.save();
+    // Atomic update: use findOneAndUpdate + $inc so concurrent message rewards don't overwrite each other
+    const updateFilter = { userId: message.author.id };
+    const updateDoc = isNewDay
+      ? {
+          $set: {
+            lastMessageDate: now,
+            lastMessagePointsReset: now,
+            dailyMessageCount: 1,
+            dailyPoints: pointsToAdd,
+            username,
+          },
+          $inc: { honorPoints: pointsToAdd },
+        }
+      : {
+          $set: { lastMessageDate: now, username },
+          $inc: { honorPoints: pointsToAdd, dailyMessageCount: 1, dailyPoints: pointsToAdd },
+        };
+
+    const updated = await User.findOneAndUpdate(updateFilter, updateDoc, {
+      new: true,
+    });
+
+    if (!updated) {
+      console.error('[Points] findOneAndUpdate returned null for', message.author.id);
+      processedMessages.delete(messageId);
+      return;
+    }
+
+    user = updated;
 
     // Console Log
     console.log(
