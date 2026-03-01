@@ -43,19 +43,23 @@ export class BackupSchedulerService {
 
     console.log('[BackupScheduler] ⏰ Running scheduled database backup...');
     BackupService.exportDatabase()
-      .then((jsonData) => {
+      .then(({ jsonData, count }) => {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
         const filename = `phantom_backup_${timestamp}.json`;
-        return client.channels.fetch(channelId).then((ch) => ({ ch, jsonData, filename }));
+        const isEmpty = count === 0;
+        return client.channels.fetch(channelId).then((ch) => ({ ch, jsonData, filename, count, isEmpty }));
       })
-      .then(({ ch, jsonData, filename }) => {
+      .then(({ ch, jsonData, filename, count, isEmpty }) => {
         if (!ch?.isTextBased()) {
           console.error('[BackupScheduler] Channel not found or not text channel:', channelId);
           return;
         }
         const attachment = new AttachmentBuilder(Buffer.from(jsonData, 'utf-8'), { name: filename });
+        const warning = isEmpty
+          ? '\n⚠️ **Backup is empty (0 users).** Bot may be connected to a different/empty MongoDB. Check `MONGO_URI` on this server.'
+          : '';
         return (ch as TextChannel).send({
-          content: `📦 **Scheduled Database Backup**\n\`${filename}\`\n*00:00 & 12:00 น. (ไทย)*`,
+          content: `📦 **Scheduled Database Backup**\n\`${filename}\`\n*00:00 & 12:00 น. (ไทย)*\n📊 **ข้อมูลล่าสุดจาก DB ตอน export:** ${count} users${warning}`,
           files: [attachment],
         });
       })

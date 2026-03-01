@@ -2,22 +2,25 @@ import { User, IUser } from '../models/User';
 
 export class BackupService {
   /**
-   * Export all user data from the database as JSON
-   * @returns JSON string (pretty printed) containing all user data
+   * Export all user data from the database as JSON (always reads current state from MongoDB).
+   * Used by /backup export and scheduled backup — both use this, so backup = latest data at export time.
+   * @returns JSON string and user count for confirmation
    */
-  static async exportDatabase(): Promise<string> {
+  static async exportDatabase(): Promise<{ jsonData: string; count: number }> {
     try {
       console.log('[BackupService] Starting database export...');
-      
-      // Fetch all users from the database
+
+      // Always read current state from MongoDB (no cache). Same DB as leaderboard.
       const users = await User.find({}).lean();
       console.log(`[BackupService] Found ${users.length} users to export`);
 
-      // Convert to JSON with pretty printing
+      if (users.length === 0) {
+        console.warn('[BackupService] ⚠️ No users in database — backup will be empty. Check that MONGO_URI points to the correct MongoDB.');
+      }
+
       const jsonData = JSON.stringify(users, null, 2);
-      
       console.log('[BackupService] Database export completed successfully');
-      return jsonData;
+      return { jsonData, count: users.length };
     } catch (error) {
       console.error('[BackupService] Error exporting database:', error);
       throw new Error(`Failed to export database: ${error instanceof Error ? error.message : 'Unknown error'}`);

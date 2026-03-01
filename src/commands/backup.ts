@@ -52,8 +52,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (subcommand === 'export') {
       console.log(`[Backup] Export requested by ${interaction.user.tag} (${interaction.user.id})`);
 
-      // Export database
-      const jsonData = await BackupService.exportDatabase();
+      // Export database (always reads latest from MongoDB — same source as leaderboard)
+      const { jsonData, count } = await BackupService.exportDatabase();
 
       // Create file buffer
       const buffer = Buffer.from(jsonData, 'utf-8');
@@ -74,11 +74,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           const channel = await interaction.client.channels.fetch(backupChannelId);
           if (channel?.isTextBased()) {
             await (channel as TextChannel).send({
-              content: `📦 **Database Backup** (requested by ${interaction.user.tag})\n\n\`${filename}\`\n*Keep this file secure!*`,
+              content: `📦 **Database Backup** (requested by ${interaction.user.tag})\n\`${filename}\`\n📊 **ข้อมูลล่าสุดจาก DB ตอน export:** ${count} users\n*Keep this file secure!*`,
               files: [attachment],
             });
             await interaction.editReply({
-              content: `✅ ส่ง backup ไปที่ <#${backupChannelId}> แล้ว`,
+              content: `✅ ส่ง backup ไปที่ <#${backupChannelId}> แล้ว (${count} users)`,
             });
             console.log('[Backup] Export sent to channel', backupChannelId, 'by', interaction.user.tag);
             return;
@@ -93,16 +93,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       // Fallback: try DM, then ephemeral reply
       try {
         await interaction.user.send({
-          content: '📦 **Database Backup**\n\nYour database backup file is attached below. Keep this file secure!',
+          content: `📦 **Database Backup**\n\`${filename}\`\n📊 ข้อมูลล่าสุดจาก DB ตอน export: ${count} users\n\nYour database backup file is attached below. Keep this file secure!`,
           files: [attachment],
         });
         await interaction.editReply({
-          content: '✅ Database backup exported successfully! Check your DMs for the file.',
+          content: `✅ Database backup exported successfully! (${count} users) Check your DMs for the file.`,
         });
       } catch (dmError) {
         console.warn('[Backup] Failed to send DM, using ephemeral reply instead:', dmError);
         await interaction.editReply({
-          content: '✅ Database backup exported successfully!',
+          content: `✅ Database backup exported successfully! (${count} users)`,
           files: [attachment],
         });
       }
