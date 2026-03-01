@@ -20,8 +20,8 @@ RUN npm run build
 # The compiled server.ts expects public folder at dist/dashboard/public
 RUN cp -r src/dashboard/public dist/dashboard/
 
-# Stage 2: Production
-FROM node:18-alpine
+# Stage 2: Production (use node:18 when node:18-alpine pull fails due to registry/DNS)
+FROM node:18
 
 WORKDIR /app
 

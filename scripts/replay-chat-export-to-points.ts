@@ -11,9 +11,10 @@
  * - Author: "Author", "Username", "User", "Name"
  * - Optional Author ID: "Author ID", "User ID", "UserId" → matches DB userId
  *
- * Run: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx> [--after-date=ISO_DATE]
+ * Run: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx|.csv> [--after-date=ISO_DATE] [--base-date=YYYY-MM-DD]
  * Example: npx ts-node scripts/replay-chat-export-to-points.ts "/path/to/export.xlsx"
  * Example (only messages on or after 7:22 AM Thailand): npx ts-node scripts/replay-chat-export-to-points.ts "/path/to/export.xlsx" --after-date=2026-02-28T00:22:00
+ * Example (CSV with time-only column, e.g. "0:08:02" = March 1): npx ts-node scripts/replay-chat-export-to-points.ts "export-2026-03-01.csv" --base-date=2026-03-01
  */
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
@@ -31,17 +32,24 @@ function normalizeHeader(s: string): string {
   return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-function parseDate(val: unknown): Date | null {
+function parseDate(val: unknown, baseDateStr: string | null): Date | null {
   if (val == null) return null;
   if (val instanceof Date) return val;
   if (typeof val === 'number') {
-    // Excel serial date
     const d = XLSX.SSF.parse_date_code(val);
     if (d) return new Date(d.y, d.m - 1, d.d);
     return new Date((val - 25569) * 86400 * 1000);
   }
   const s = String(val).trim();
   if (!s) return null;
+  // Time-only (e.g. "0:08:02" or "12:34:56") with optional base date (e.g. "2026-03-01")
+  const timeOnlyMatch = /^(\d{1,2}):(\d{2}):(\d{2})$/.exec(s);
+  if (timeOnlyMatch && baseDateStr) {
+    const [, h, m, sec] = timeOnlyMatch;
+    const combined = `${baseDateStr}T${h.padStart(2, '0')}:${m}:${sec}`;
+    const d = new Date(combined);
+    return isNaN(d.getTime()) ? null : d;
+  }
   const parsed = new Date(s);
   return isNaN(parsed.getTime()) ? null : parsed;
 }
@@ -53,10 +61,11 @@ function toDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function parseArgs(): { filePath: string; afterDate: Date | null } {
+function parseArgs(): { filePath: string; afterDate: Date | null; baseDate: string | null } {
   const args = process.argv.slice(2);
   let filePath = '';
   let afterDate: Date | null = null;
+  let baseDate: string | null = null;
   for (const arg of args) {
     if (arg.startsWith('--after-date=')) {
       const val = arg.slice('--after-date='.length).trim();
@@ -64,26 +73,32 @@ function parseArgs(): { filePath: string; afterDate: Date | null } {
         const d = new Date(val);
         if (!isNaN(d.getTime())) afterDate = d;
       }
+    } else if (arg.startsWith('--base-date=')) {
+      const val = arg.slice('--base-date='.length).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) baseDate = val;
     } else if (!filePath) {
       filePath = arg;
     }
   }
-  return { filePath, afterDate };
+  return { filePath, afterDate, baseDate };
 }
 
 async function main() {
-  const { filePath, afterDate } = parseArgs();
+  const { filePath, afterDate, baseDate } = parseArgs();
   if (!filePath) {
-    console.error('Usage: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx> [--after-date=ISO_DATE]');
+    console.error('Usage: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx|.csv> [--after-date=ISO_DATE] [--base-date=YYYY-MM-DD]');
     process.exit(1);
   }
   if (afterDate) {
     console.log('Filter: only messages on or after', afterDate.toISOString());
   }
+  if (baseDate) {
+    console.log('Base date for time-only column:', baseDate);
+  }
 
   console.log('Reading:', filePath);
   const buf = readFileSync(filePath);
-  const wb = XLSX.read(buf, { type: 'buffer', cellDates: false });
+  const wb = XLSX.read(buf, { type: 'buffer', cellDates: false, raw: true });
   const firstSheet = wb.SheetNames[0];
   const ws = wb.Sheets[firstSheet];
   const data: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
@@ -126,7 +141,7 @@ async function main() {
 
   for (const row of rows) {
     const dateVal = row[dateCol];
-    const date = parseDate(dateVal);
+    const date = parseDate(dateVal, baseDate);
     if (!date) continue;
     if (afterDate && date < afterDate) continue;
 

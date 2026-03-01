@@ -222,13 +222,15 @@ export class LeaderboardService {
 
   /**
    * Update monthly snapshot - copies current honorPoints to honorPointsAtMonthStart.
+   * Uses Bangkok time for "start of month" so it matches the cron (00:00 on 1st Bangkok).
    * SAFETY: NEVER modifies honorPoints. Only reads and stores snapshot.
    */
   private async updateMonthlySnapshot(): Promise<void> {
     const users = await User.find({}).lean();
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const bangkokYear = parseInt(now.toLocaleString('en-CA', { timeZone: 'Asia/Bangkok', year: 'numeric' }), 10);
+    const bangkokMonth = parseInt(now.toLocaleString('en-CA', { timeZone: 'Asia/Bangkok', month: '2-digit' }), 10);
+    const startOfMonth = new Date(Date.UTC(bangkokYear, bangkokMonth - 1, 1, 0, 0, 0, 0));
 
     for (const u of users) {
       await User.updateOne(
