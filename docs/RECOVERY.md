@@ -1,11 +1,20 @@
 # กู้คืน Honor Points ที่หายไป (Recovery Guide)
 
+## ทำไมข้อความในช่อง #honor-hall / #honor-leaderboard ถึงแสดง "(edited)"
+
+- **ช่อง HALL_CHANNEL_ID (#honor-hall)**  
+  ข้อความปุ่ม "View Profile" ถูก **แก้โดย UserInteractionService ทุก 3 นาที** เพื่อให้ปุ่ม/embed ยังอยู่ (ensure button) — **ไม่เกี่ยวกับการกดปุ่มหรือคะแนน** การกด "View Profile" จะแค่แสดงผล ephemeral ให้ผู้กด ไม่ได้แก้ข้อความในช่องหรือคะแนนใน DB
+
+- **ช่อง LEADERBOARD_CHANNEL_ID (#honor-leaderboard)**  
+  ข้อความลีดเดอร์บอร์ดจะถูก **edit** เมื่อมีเหตุการณ์ที่ trigger การอัปเดต เช่น มีคนได้แต้มจากแชท/เดลี่/coin flip หรือ cron เที่ยงคืน (UTC) — **การ edit นี้แค่เขียนข้อความใหม่จากข้อมูลใน DB ปัจจุบัน ไม่ได้ไปรีเซ็ตหรือแก้คะแนนใน DB**
+
+ดังนั้นการที่เห็น "(edited)" **ไม่ใช่สาเหตุที่คะแนนถูกรีเซ็ต** ถ้าคะแนนหายจริง ต้องดูสาเหตุในส่วน "ทำไมแต้มถึงหายไปได้" ด้านล่าง
+
+---
+
 ## ทำไมแต้มถึงหายไปได้ (สาเหตุที่เป็นไปได้)
 
-1. **มีการใช้คำสั่ง `/reset database`**  
-   คำสั่งนี้จะลบผู้ใช้ทั้งหมดในฐานข้อมูล ถ้ามีคนกด confirm สองครั้ง ข้อมูลจะถูกลบและผู้ใช้ที่กลับมาใช้บอทจะได้แต้มเริ่มต้นใหม่ (0 แล้วค่อยสะสมใหม่)
-
-2. **การ restore ฐานข้อมูลจาก backup เก่า**  
+1. **การ restore ฐานข้อมูลจาก backup เก่า**  
    ถ้ามีการ restore MongoDB จาก backup ที่เป็น snapshot เก่า (ก่อนที่ผู้ใช้จะสะสมแต้ม) ข้อมูลใน DB จะถูกแทนที่ด้วยข้อมูลใน backup นั้น
 
 3. **MongoDB ถูกเปลี่ยนหรือสร้างใหม่**  
@@ -22,14 +31,15 @@
 
 1. **Discord Audit Log**  
    ในเซิร์ฟเวอร์ Discord: Server Settings → Audit Log  
-   - ค้นหาการใช้คำสั่ง `/reset` หรือการลบข้อความที่เกี่ยวกับ backup  
-   - ดูว่ามีผู้มีสิทธิ์ Administrator ใช้คำสั่ง reset หรือไม่
+   - ค้นหาการลบข้อความที่เกี่ยวกับ backup (คำสั่ง `/reset` ถูกลบออกจากบอทแล้ว)
 
-2. **ประวัติคำสั่ง Docker บนโฮสต์**  
+2. **หมายเหตุ:** คำสั่ง `/reset database` ถูกลบออกจากบอทแล้ว เพื่อป้องกันการรีเซ็ตข้อมูลโดยไม่ตั้งใจ
+
+3. **ประวัติคำสั่ง Docker บนโฮสต์**  
    - ตรวจว่ามีการรัน `docker-compose down -v` หรือ `docker compose down -v` หรือไม่ (ตัว `-v` จะลบ volume ทำให้ข้อมูล MongoDB หาย)  
    - ตรวจ `docker volume ls` ว่ามี volume `*mongodb_data*` ของโปรเจกต์นี้อยู่หรือไม่
 
-3. **Log ของ container บอท**  
+4. **Log ของ container บอท**  
    - รัน `docker compose logs app` (หรือ `docker-compose logs honorbot-app`) แล้วค้นหาบรรทัด `[Reset] Database reset completed by`  
    - ถ้ามี แสดงว่ามีการกด confirm คำสั่ง `/reset database` จาก Discord
 
@@ -52,7 +62,7 @@
 1. **ยังไม่ได้ build container ใหม่หลังแก้โค้ด** — บอทยังรัน image เก่าที่ใช้ `user.save()` หลังบวกแต้ม → มีโอกาส lost update เมื่อมีหลายข้อความหรือหลาย event พร้อมกัน  
    → **ควร build ใหม่แล้วขึ้น app ใหม่:** `docker compose build app && docker compose up -d app`
 
-2. **มีคนใช้ `/reset database`** หรือ **ใช้ Dashboard แก้คะแนน** (เช่น ตั้งเป็น 0 หรือค่าต่ำ)  
+2. **ใช้ Dashboard แก้คะแนน** (เช่น ตั้งเป็น 0 หรือค่าต่ำ)  
    → ตรวจ Discord Audit Log และตรวจว่าใครเข้า Dashboard
 
 3. **Volume MongoDB ถูกลบ** (เช่น รัน `docker compose down -v`)  
@@ -64,13 +74,13 @@
 
 หลังแก้โค้ดแล้ว **เมื่อผู้ใช้พิมพ์ข้อความแล้วได้แต้ม คะแนนในตารางจะไม่ถูกรีเซ็ตอีก** จากสาเหตุเดิม (race condition หรือ snapshot รายเดือน)
 
-- **การให้แต้มจากข้อความ:** ใช้ atomic update (`User.findOneAndUpdate` + `$inc`) ใน `messageCreate.ts` — แต้มจะถูกบวกเพิ่มเข้า `honorPoints` โดยไม่มีการ read-modify-write ที่อาจทำให้แต้มหายเมื่อมีหลายข้อความพร้อมกัน  
+- **การให้แต้มจากข้อความ:** ใช้ atomic update (`User.findOneAndUpdate` + `$inc`) ใน `messageCreate.ts` — **1 ข้อความต่อวัน** = **10 แต้ม** (คงที่) รีเซ็ตที่ **เที่ยงคืนเวลาไทย (Asia/Bangkok)** แต้มจะถูกบวกเพิ่มเข้า `honorPoints` โดยไม่มีการ read-modify-write ที่อาจทำให้แต้มหายเมื่อมีหลายข้อความพร้อมกัน  
 - **ตาราง leaderboard รายเดือน:** คำนวณจาก `honorPoints - honorPointsAtMonthStart` เท่านั้น ฟังก์ชัน `updateMonthlySnapshot()` แค่ copy ค่าไปเก็บเป็น baseline **ไม่แก้หรือรีเซ็ต `honorPoints`**  
-- สิ่งที่ "รีเซ็ต" ในระบบ (เช่น daily message count 5 ข้อความ/วัน, snapshot ต้นเดือนสำหรับมุมมองรายเดือน) **ไม่กระทบแต้มรวม** — มีเฉพาะคำสั่ง `/reset database` หรือการลบ volume ที่จะทำให้ข้อมูลหาย และต้องมีคนกด confirm เอง
+- สิ่งที่ "รีเซ็ต" ในระบบ (เช่น daily message count 5 ข้อความ/วัน, snapshot ต้นเดือนสำหรับมุมมองรายเดือน) **ไม่กระทบแต้มรวม** — **คำสั่ง `/reset database` ถูกลบออกแล้ว** เหลือเฉพาะการลบ volume หรือ restore จาก backup เก่าที่จะทำให้ข้อมูลหาย
 
 ถ้า deploy โค้ดล่าสุด (ใช้ atomic update) และไม่มีการกด reset หรือลบ volume คะแนนจากการพิมพ์จะคงที่และสะสมต่อได้ตามปกติ
 
-**ถ้าแต้มยังหายบ่อย:** (1) ตรวจว่า **build image ใหม่** แล้วขึ้น app ใหม่ (`docker compose build app && docker compose up -d app`) — ถ้ายังรัน image เก่าที่ใช้ `user.save()` หลังบวกแต้ม แต้มอาจหายเมื่อมีหลาย event พร้อมกัน (2) ตรวจ log ว่ามี `[Reset] Database reset completed by` หรือไม่ (3) ตรวจว่าไม่มี `docker compose down -v` หรือการลบ volume MongoDB
+**ถ้าแต้มยังหายบ่อย:** (1) ตรวจว่า **build image ใหม่** แล้วขึ้น app ใหม่ (`docker compose build app && docker compose up -d app`) (2) ตรวจว่าไม่มี `docker compose down -v` หรือการลบ volume MongoDB
 
 ---
 
@@ -135,13 +145,40 @@ mongorestore --uri="mongodb://localhost:27017" --db=honorbot --collection=users 
 
 ---
 
+## กู้คืนแต้ม 3 มี.ค. 2026 (phantom backup + CSV แชท)
+
+ถ้ามีไฟล์ **phantom_backup_2026-03-03.json** (สถานะแต้ม 11:00 น. ไทย) และ **PBZ _ General Chat (EN) - 2026-03-03.csv** (ประวัติแชทวันนั้น) สามารถกู้คืนโดย:
+
+1. **Restore จาก backup** → คืนสถานะ DB ไปที่ 11:00 น. ไทย  
+2. **Replay CSV** → นับเฉพาะข้อความ **หลัง 11:00 น. ไทย** ให้ **1 แต้มต่อข้อความ** สูงสุด **5 แต้ม/วันต่อคน**
+
+รันสคริปต์เดียว (จากโฟลเดอร์โปรเจกต์):
+
+```bash
+cd /root/honorbot-pbz
+npx ts-node scripts/recover-points-2026-03-03.ts
+```
+
+หรือรันแยกสองขั้นตอน:
+
+```bash
+npx ts-node scripts/restore-from-json-backup.ts database-backups/incoming/phantom_backup_2026-03-03.json
+npx ts-node scripts/replay-chat-export-to-points.ts "database-backups/incoming/PBZ _ General Chat (EN) - 2026-03-03.csv" --base-date=2026-03-03 --after-date=2026-03-03T04:00:00.000Z --points-per-message=1
+```
+
+(`04:00 UTC` = 11:00 น. ไทย)
+
+---
+
 ## ย้อนแต้มจากประวัติแชท (Excel export)
 
 ถ้าคุณ **export ประวัติแชท** ของแชนเนลออกมาเป็น Excel (`.xlsx`) เราสามารถใช้สคริปต์ **replay** นับข้อความตามกฎของบอท (สูงสุด 5 ข้อความต่อวันต่อคน) แล้วเพิ่ม Honor Points ให้ตรงกับช่วงนั้นได้
 
 - ไฟล์ Excel ต้องมีคอลัมน์ **วันที่** (เช่น Date, Timestamp, Time) และ **ผู้ส่ง** (Author, Username, User)
 - ถ้ามีคอลัมน์ **Author ID** หรือ **User ID** จะใช้แมปกับ Discord user ID ใน DB ได้ตรงกว่า (ชื่ออาจเปลี่ยน)
-- กฎเดียวกับบอท: สูงสุด 5 ข้อความต่อวันต่อคน นับแต้ม; แต้มต่อข้อความใช้ค่าเฉลี่ย 2 (แทนการสุ่ม 1–5)
+- กฎเดียวกับบอท: สูงสุด 5 ข้อความต่อวันต่อคน นับแต้ม
+- ใช้ `--points-per-message=1` ได้ถ้าต้องการ 1 แต้มต่อข้อความ (เช่น กู้คืน 2026-03-03)
+- ใช้ `--after-date=ISO_DATE` เพื่อนับเฉพาะข้อความหลังเวลาที่กำหนด (เช่น หลังเวลา backup)
 
 รัน (ใส่ path ไฟล์จริงของคุณ):
 

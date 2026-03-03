@@ -4,7 +4,7 @@ import { getWeightedRandomDailyPoints } from '../commands/daily';
 import * as profileCommand from '../commands/profile';
 import * as leaderboardCommand from '../commands/leaderboard';
 import * as backupCommand from '../commands/backup';
-import * as resetCommand from '../commands/reset';
+// /reset database removed to prevent accidental data loss
 import * as statusCommand from '../commands/status';
 import * as gambleCommand from '../commands/gamble';
 // PVP system temporarily disabled
@@ -42,10 +42,6 @@ export async function execute(interaction: Interaction): Promise<void> {
     //   await LuckyDrawService.handleLuckyDrawButton(interaction);
     //   return;
     // }
-    if (interaction.customId.startsWith('reset_confirm_') || interaction.customId.startsWith('reset_cancel_')) {
-      await resetCommand.handleResetButton(interaction);
-      return;
-    }
     // PVP system temporarily disabled
     // // Handle PVP accept challenge button
     // if (interaction.customId.startsWith('pvp_accept_')) {
@@ -115,17 +111,7 @@ export async function execute(interaction: Interaction): Promise<void> {
         }
         await backupCommand.execute(interaction);
         break;
-      case 'reset':
-        // Admin only - check permission
-        if (!interaction.member || !(interaction.member.permissions as any)?.has?.(PermissionFlagsBits.Administrator)) {
-          await interaction.reply({
-            content: '❌ This command is only available for administrators.',
-            flags: MessageFlags.Ephemeral,
-          });
-          return;
-        }
-        await resetCommand.execute(interaction);
-        break;
+      // /reset database removed to prevent accidental score reset
       case 'status':
         await statusCommand.execute(interaction);
         break;

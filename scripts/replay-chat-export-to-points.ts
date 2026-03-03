@@ -25,8 +25,9 @@ import { User } from '../src/models/User';
 
 dotenv.config({ path: resolve(__dirname, '../.env') });
 
-const POINTS_PER_MESSAGE = 2; // average of 1–5 weighted
 const MAX_MESSAGES_PER_DAY = 5;
+// Default 2 (legacy); override with --points-per-message=1 for recovery
+let POINTS_PER_MESSAGE = 2;
 
 function normalizeHeader(s: string): string {
   return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -61,11 +62,12 @@ function toDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function parseArgs(): { filePath: string; afterDate: Date | null; baseDate: string | null } {
+function parseArgs(): { filePath: string; afterDate: Date | null; baseDate: string | null; pointsPerMessage: number } {
   const args = process.argv.slice(2);
   let filePath = '';
   let afterDate: Date | null = null;
   let baseDate: string | null = null;
+  let pointsPerMessage = 2;
   for (const arg of args) {
     if (arg.startsWith('--after-date=')) {
       const val = arg.slice('--after-date='.length).trim();
@@ -76,17 +78,21 @@ function parseArgs(): { filePath: string; afterDate: Date | null; baseDate: stri
     } else if (arg.startsWith('--base-date=')) {
       const val = arg.slice('--base-date='.length).trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(val)) baseDate = val;
+    } else if (arg.startsWith('--points-per-message=')) {
+      const val = parseInt(arg.slice('--points-per-message='.length).trim(), 10);
+      if (Number.isInteger(val) && val >= 1 && val <= 10) pointsPerMessage = val;
     } else if (!filePath) {
       filePath = arg;
     }
   }
-  return { filePath, afterDate, baseDate };
+  return { filePath, afterDate, baseDate, pointsPerMessage };
 }
 
 async function main() {
-  const { filePath, afterDate, baseDate } = parseArgs();
+  const { filePath, afterDate, baseDate, pointsPerMessage } = parseArgs();
+  POINTS_PER_MESSAGE = pointsPerMessage;
   if (!filePath) {
-    console.error('Usage: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx|.csv> [--after-date=ISO_DATE] [--base-date=YYYY-MM-DD]');
+    console.error('Usage: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx|.csv> [--after-date=ISO_DATE] [--base-date=YYYY-MM-DD] [--points-per-message=1]');
     process.exit(1);
   }
   if (afterDate) {
@@ -95,6 +101,7 @@ async function main() {
   if (baseDate) {
     console.log('Base date for time-only column:', baseDate);
   }
+  console.log('Points per message (capped at', MAX_MESSAGES_PER_DAY, 'per day):', POINTS_PER_MESSAGE);
 
   console.log('Reading:', filePath);
   const buf = readFileSync(filePath);

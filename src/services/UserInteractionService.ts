@@ -279,10 +279,10 @@ export class UserInteractionService {
       const coinFlipChannelMention = process.env.COIN_FLIP_CHANNEL_ID ? `<#${process.env.COIN_FLIP_CHANNEL_ID}>` : 'Coin Flip channel';
       const hallOfFameMention = process.env.LEADERBOARD_CHANNEL_ID ? `<#${process.env.LEADERBOARD_CHANNEL_ID}>` : 'Hall of Fame channel';
 
-      // Create comprehensive instruction embed
+      // Create comprehensive manual embed (MANUAL_CHANNEL_ID)
       const embed = new EmbedBuilder()
         .setColor(0x8b0000)
-        .setTitle('📖 Instruction Guide')
+        .setTitle('📖 Manual')
         .setDescription('**Welcome to HonorBot PBZ!**\n\nLearn how to use all the features and earn honor points in the Jianghu.')
         .addFields(
           {
@@ -295,13 +295,13 @@ export class UserInteractionService {
           },
           {
             name: '💬 Chat Activity - Message Points System',
-            value: `Earn **1-5 random honor points** per message (max **5 times/day**)\n\n` +
+            value: `Earn **10 honor points** once per day from chatting\n\n` +
                    `**How to Check Status:**\n` +
-                   `• Use ${tasksChannelMention} to check your cooldown and daily quota\n` +
+                   `• Use ${tasksChannelMention} to check your daily quota\n` +
                    `• Check ${statusChannelMention} to see point distribution log\n\n` +
                    `**Rules:**\n` +
-                   `• 60-second cooldown between rewards\n` +
-                   `• Daily limit: **5 messages** per day (resets at midnight UTC)\n` +
+                   `• **1 message per day** = **10 points** (fixed)\n` +
+                   `• Daily limit: **1 time per day** (resets at **midnight UTC+7**)\n` +
                    `• Bot messages are ignored\n` +
                    `• No reactions - check status via /status command or ${tasksChannelMention}`,
             inline: false,
@@ -310,8 +310,8 @@ export class UserInteractionService {
             name: '🪪 View Profile',
             value: `Go to ${profileChannelMention} and click the **"View Profile"** button to see:\n\n` +
                    `• Your honor points and global rank\n` +
-                   `• Daily message progress (Current: X / Max: 5)\n` +
-                   `• Today's message points earned\n` +
+                   `• Daily message progress (Current: X / Max: 1)\n` +
+                   `• Today's message points earned (0 or 10)\n` +
                    `• Daily check-in availability\n` +
                    `• Join date`,
             inline: false,
@@ -320,9 +320,8 @@ export class UserInteractionService {
             name: '📋 Today\'s Tasks',
             value: `Go to ${tasksChannelMention} and click the **"Check Remaining Tasks"** button to see:\n\n` +
                    `• Current honor points\n` +
-                   `• Daily message quota (Current: X / Max: 5)\n` +
-                   `• Message cooldown (shows seconds remaining for receiving points from messages)\n` +
-                   `• Cooldown status\n` +
+                   `• Daily message quota (Current: X / Max: 1)\n` +
+                   `• Whether you've claimed today's 10-point chat reward\n` +
                    `• Daily check-in availability\n` +
                    `• What tasks you still have remaining today`,
             inline: false,
@@ -332,7 +331,7 @@ export class UserInteractionService {
             value: `Check ${statusChannelMention} to see the **point distribution log**!\n\n` +
                    `• Shows last 10 point distributions\n` +
                    `• Real-time updates as users earn points\n` +
-                   `• Format: [Time] Username earned +X points (Current: Y/5)`,
+                   `• Format: [Time] Username earned +X points (Daily: 1 msg = 10 pts)`,
             inline: false,
           },
           {
@@ -393,8 +392,8 @@ export class UserInteractionService {
         for (const [id, msg] of messages) {
           if (msg.author.id === client.user?.id && msg.embeds.length > 0) {
             // Check if this message has our instruction embed (by title)
-            const hasInstructionEmbed = msg.embeds.some(embed => 
-              embed.title?.includes('Instruction Guide') || embed.title?.includes('📖')
+            const hasInstructionEmbed = msg.embeds.some(emb => 
+              emb.title?.includes('Manual') || emb.title?.includes('Instruction Guide') || emb.title?.includes('📖')
             );
             if (hasInstructionEmbed) {
               instructionMessage = msg;

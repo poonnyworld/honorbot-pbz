@@ -13,8 +13,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ ephemeral: true });
 
   try {
-    // Daily limit for message rewards (5 times per day)
-    const DAILY_MESSAGE_REWARD_LIMIT = 5;
+    // Daily limit: 1 message per day, 10 points (resets midnight Thailand)
+    const DAILY_MESSAGE_REWARD_LIMIT = 1;
 
     // Find or create user
     let user = await User.findOne({ userId: interaction.user.id });
@@ -42,21 +42,30 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const now = new Date();
 
-    // Calculate cooldown status for message rewards
-    const isNewUserFirstMessage = user.lastMessageDate.getTime() === 0;
-    let timeSinceLastMessage = 0;
-    let cooldownRemaining = 0;
-    let isOnCooldown = false;
-    
-    if (!isNewUserFirstMessage) {
-      timeSinceLastMessage = (now.getTime() - user.lastMessageDate.getTime()) / 1000;
-      cooldownRemaining = Math.max(0, Math.ceil(60 - timeSinceLastMessage));
-      isOnCooldown = timeSinceLastMessage < 60;
+    // "New day" for message reward = midnight Thailand (Asia/Bangkok)
+    const tz = 'Asia/Bangkok';
+    const todayBk = `${now.toLocaleString('en-CA', { timeZone: tz, year: 'numeric' })}-${now.toLocaleString('en-CA', { timeZone: tz, month: '2-digit' })}-${now.toLocaleString('en-CA', { timeZone: tz, day: '2-digit' })}`;
+    const lastResetDateLocal = user.lastMessagePointsReset || new Date(0);
+    const lastBk = `${lastResetDateLocal.toLocaleString('en-CA', { timeZone: tz, year: 'numeric' })}-${lastResetDateLocal.toLocaleString('en-CA', { timeZone: tz, month: '2-digit' })}-${lastResetDateLocal.toLocaleString('en-CA', { timeZone: tz, day: '2-digit' })}`;
+    const currentDailyCount = todayBk > lastBk ? 0 : user.dailyMessageCount;
+
+    // Chat reward status: show countdown to next reward (midnight Thailand) when quota used
+    let chatRewardStatus: string;
+    if (currentDailyCount >= DAILY_MESSAGE_REWARD_LIMIT) {
+      const todayBkMidnight = new Date(`${todayBk}T00:00:00+07:00`);
+      const nextBkMidnight = new Date(todayBkMidnight.getTime() + 24 * 60 * 60 * 1000);
+      const msLeft = Math.max(0, nextBkMidnight.getTime() - now.getTime());
+      const hours = Math.floor(msLeft / (60 * 60 * 1000));
+      const minutes = Math.floor((msLeft % (60 * 60 * 1000)) / (60 * 1000));
+      const seconds = Math.floor((msLeft % (60 * 1000)) / 1000);
+      const parts: string[] = [];
+      if (hours > 0) parts.push(`${hours} hr${hours !== 1 ? 's' : ''}`);
+      if (minutes > 0) parts.push(`${minutes} min`);
+      if (seconds > 0 || parts.length === 0) parts.push(`${seconds} sec`);
+      chatRewardStatus = `⏳ Next chat reward in **${parts.join(' ')}** (resets at midnight UTC+7)`;
+    } else {
+      chatRewardStatus = '✅ Send a message to receive **10 points** (once per day)';
     }
-    
-    const messageCooldownInfo = isOnCooldown
-      ? `⏳ Cooldown: **${cooldownRemaining}** seconds (wait ${cooldownRemaining} seconds to receive points from sending messages)`
-      : '✅ Ready to receive points from sending messages';
 
     // Calculate daily command status
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -76,19 +85,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const dailyCommandStatus = (user.lastDailyReset && user.lastDailyReset.getTime() !== 0 && today.getTime() === lastReset.getTime())
       ? '⏳ **Claimed** (come back tomorrow)'
       : '✅ **Available**';
-
-    // Check if daily message count needs reset
-    const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const lastResetDateLocal = user.lastMessagePointsReset || new Date(0);
-    const lastResetLocal = new Date(
-      lastResetDateLocal.getFullYear(),
-      lastResetDateLocal.getMonth(),
-      lastResetDateLocal.getDate()
-    );
-
-    const currentDailyCount = todayLocal.getTime() > lastResetLocal.getTime() 
-      ? 0 
-      : user.dailyMessageCount;
 
     const dailyQuotaStatus = currentDailyCount >= DAILY_MESSAGE_REWARD_LIMIT
       ? `Current: **${currentDailyCount}** / Max: **${DAILY_MESSAGE_REWARD_LIMIT}** 🛑 (Limit reached)`
@@ -111,8 +107,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           inline: false,
         },
         {
-          name: '⏱️ Message Cooldown',
-          value: messageCooldownInfo,
+          name: '💬 Chat Reward',
+          value: chatRewardStatus,
           inline: false,
         },
         {

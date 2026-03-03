@@ -137,22 +137,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     // Get user avatar
     const avatarUrl = interaction.user.displayAvatarURL({ size: 256 });
 
-    // Calculate daily message statistics
+    // Daily message stats: "new day" = midnight Thailand (Asia/Bangkok), same as messageCreate
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tz = 'Asia/Bangkok';
+    const todayBk = `${now.toLocaleString('en-CA', { timeZone: tz, year: 'numeric' })}-${now.toLocaleString('en-CA', { timeZone: tz, month: '2-digit' })}-${now.toLocaleString('en-CA', { timeZone: tz, day: '2-digit' })}`;
     const lastResetDate = user.lastMessagePointsReset || new Date(0);
-    const lastReset = new Date(
-      lastResetDate.getFullYear(),
-      lastResetDate.getMonth(),
-      lastResetDate.getDate()
-    );
-
-    // Get current daily message count (0 if new day, otherwise user's count)
-    const currentDailyMessageCount = today.getTime() > lastReset.getTime() ? 0 : user.dailyMessageCount;
-    const DAILY_MESSAGE_REWARD_LIMIT = 5; // Matches messageCreate.ts constant
-
-    // Get today's message points (dailyPoints resets with dailyMessageCount)
-    const todayMessagePoints = today.getTime() > lastReset.getTime() ? 0 : user.dailyPoints;
+    const lastBk = `${lastResetDate.toLocaleString('en-CA', { timeZone: tz, year: 'numeric' })}-${lastResetDate.toLocaleString('en-CA', { timeZone: tz, month: '2-digit' })}-${lastResetDate.toLocaleString('en-CA', { timeZone: tz, day: '2-digit' })}`;
+    const isNewDayMsg = todayBk > lastBk;
+    const DAILY_MESSAGE_REWARD_LIMIT = 1; // 10 pts, 1 msg/day, reset midnight Thailand
+    const currentDailyMessageCount = isNewDayMsg ? 0 : user.dailyMessageCount;
 
     // Calculate daily check-in status (using UTC like in daily.ts)
     const nowUTC = new Date();
@@ -195,17 +188,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       });
     }
 
-    // Add Daily Message Progress field
+    // Add Daily Message Progress field (1 message/day = 10 pts)
     fields.push({
       name: '💬 Daily Message Progress',
       value: `Current: **${currentDailyMessageCount}** / Max: **${DAILY_MESSAGE_REWARD_LIMIT}**`,
-      inline: true,
-    });
-
-    // Add Today's Message Points field
-    fields.push({
-      name: '📝 Today\'s Message Points',
-      value: `**${todayMessagePoints.toLocaleString()}** points earned today`,
       inline: true,
     });
 

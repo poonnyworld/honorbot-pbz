@@ -9,8 +9,18 @@ dotenv.config();
 
 export const name = Events.MessageCreate;
 
-// Daily limit for message rewards (5 times per day)
-const DAILY_MESSAGE_REWARD_LIMIT = 5;
+// Daily limit: 1 message per day, 10 points per message (resets at midnight Thailand time)
+const DAILY_MESSAGE_REWARD_LIMIT = 1;
+const MESSAGE_REWARD_POINTS = 10;
+const CHAT_REWARD_TIMEZONE = 'Asia/Bangkok';
+
+/** Get date key YYYY-MM-DD in Thailand time for day comparison (midnight = new day) */
+function getDateKeyBangkok(d: Date): string {
+  const y = d.toLocaleString('en-CA', { timeZone: CHAT_REWARD_TIMEZONE, year: 'numeric' });
+  const m = d.toLocaleString('en-CA', { timeZone: CHAT_REWARD_TIMEZONE, month: '2-digit' });
+  const day = d.toLocaleString('en-CA', { timeZone: CHAT_REWARD_TIMEZONE, day: '2-digit' });
+  return `${y}-${m}-${day}`;
+}
 
 // Track processed messages to prevent duplicate processing
 // This Set stores message IDs that have already been processed
@@ -23,26 +33,6 @@ setInterval(() => {
   // For now, we rely on the fact that message IDs are unique and won't be reused
   // We could add a timestamp-based cleanup if needed, but it's not critical
 }, 5 * 60 * 1000);
-
-/**
- * Get weighted random points based on probability distribution
- * @returns Points from 1-5 with distribution: 1 (80%), 2 (10%), 3 (5%), 4 (3%), 5 (2%)
- */
-function getWeightedRandomPoints(): number {
-  const random = Math.random() * 100; // Generate random number 0-100
-
-  if (random < 80) {
-    return 1; // 80% chance
-  } else if (random < 90) {
-    return 2; // 10% chance (80-90)
-  } else if (random < 95) {
-    return 3; // 5% chance (90-95)
-  } else if (random < 98) {
-    return 4; // 3% chance (95-98)
-  } else {
-    return 5; // 2% chance (98-100)
-  }
-}
 
 export async function execute(message: Message): Promise<void> {
   // Ignore messages from bots
@@ -100,24 +90,20 @@ export async function execute(message: Message): Promise<void> {
 
     const now = new Date();
 
-    // Daily Reset Logic: Check if we need to reset daily message count
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Daily Reset Logic: new day = midnight Thailand (Asia/Bangkok)
+    const todayBangkok = getDateKeyBangkok(now);
     const lastResetDate = user.lastMessagePointsReset || new Date(0);
-    const lastReset = new Date(
-      lastResetDate.getFullYear(),
-      lastResetDate.getMonth(),
-      lastResetDate.getDate()
-    );
+    const lastResetBangkok = getDateKeyBangkok(lastResetDate);
 
-    // Reset daily message count if it's a new day
-    if (today.getTime() > lastReset.getTime()) {
+    // Reset daily message count if it's a new day (in Thailand timezone)
+    if (todayBangkok > lastResetBangkok) {
       user.dailyMessageCount = 0;
       user.dailyPoints = 0;
       user.lastMessagePointsReset = now;
-      console.log(`[Points] Daily message count reset for ${user.username}`);
+      console.log(`[Points] Daily message count reset for ${user.username} (new day in ${CHAT_REWARD_TIMEZONE})`);
     }
 
-    // Check if daily reward limit has been reached (5 times per day)
+    // Check if daily reward limit has been reached (1 message per day)
     if (user.dailyMessageCount >= DAILY_MESSAGE_REWARD_LIMIT) {
       // Daily limit reached - ignore (no reaction) to indicate no points are being earned
       return;
@@ -138,11 +124,10 @@ export async function execute(message: Message): Promise<void> {
       }
     }
 
-    // Calculate points to add (weighted random 1-5)
-    // Distribution: 1 point (80%), 2 points (10%), 3 points (5%), 4 points (3%), 5 points (2%)
-    const pointsToAdd = getWeightedRandomPoints();
+    // 10 points per message (1 message per day only)
+    const pointsToAdd = MESSAGE_REWARD_POINTS;
 
-    const isNewDay = today.getTime() > lastReset.getTime();
+    const isNewDay = todayBangkok > lastResetBangkok;
     const username = message.author.username;
 
     // Atomic update: use findOneAndUpdate + $inc so concurrent message rewards don't overwrite each other

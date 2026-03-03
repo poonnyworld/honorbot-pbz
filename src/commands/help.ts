@@ -32,16 +32,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         },
         {
           name: '💬 Chat Activity - Message Points System',
-          value: `Earn **1-5 random honor points** per message (max **5 times/day**)\n\n` +
-                 `**Reaction Feedback:**\n` +
-                 `• Number emoji (1️⃣-5️⃣) = Points earned\n` +
-                 `• ⏳ = Cooldown active (wait 60 seconds)\n` +
-                 `• ✅ = Daily limit reached (5th message)\n` +
-                 `• No reaction = Daily limit exceeded (no points)\n\n` +
+          value: `Earn **5 honor points** once per day from chatting\n\n` +
                  `**Rules:**\n` +
-                 `• 60-second cooldown between rewards\n` +
-                 `• Daily limit: **5 messages** per day (resets at midnight UTC)\n` +
-                 `• Bot messages are ignored`,
+                 `• **1 message per day** = **10 points** (fixed)\n` +
+                 `• Daily limit: **1 time per day** (resets at **midnight UTC+7**)\n` +
+                 `• Bot messages are ignored\n` +
+                 `• No reaction feedback – check /status or Tasks channel`,
           inline: false,
         },
         {
