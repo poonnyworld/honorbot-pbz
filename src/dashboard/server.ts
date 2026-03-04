@@ -194,6 +194,33 @@ export function startDashboard(leaderboardService?: LeaderboardService): void {
     }
   });
 
+  // API Endpoint: Refresh Discord leaderboard message (e.g. after database restore)
+  app.post('/api/leaderboard/refresh', writeLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!leaderboardServiceInstance) {
+        return res.status(503).json({
+          success: false,
+          error: 'LeaderboardService not available.',
+        });
+      }
+      console.log('[Dashboard] POST /api/leaderboard/refresh - Forcing Discord leaderboard update...');
+      const ok = await leaderboardServiceInstance.forceUpdate();
+      if (ok) {
+        return res.json({ success: true, message: 'Leaderboard updated in Discord.' });
+      }
+      return res.status(500).json({
+        success: false,
+        error: 'Leaderboard update failed. Check bot logs.',
+      });
+    } catch (error) {
+      console.error('[Dashboard] Error refreshing leaderboard:', error);
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to refresh leaderboard',
+      });
+    }
+  });
+
   // API Endpoint: Update user's honor points (Admin only)
   // SECURITY: Apply stricter rate limiting to write operations
   app.post('/api/user/:id/points', writeLimiter, async (req: Request, res: Response) => {

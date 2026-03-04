@@ -72,7 +72,6 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 
 - **`/backup export`** - Export database backup (Administrator only; sent to backup channel if `BACKUP_DATABASE_CHANNEL_ID` is set, else DM)
 - **`/backup import <file>`** - Import database backup from JSON file (Administrator only)
-- **`/reset database`** - Reset the entire database - WARNING: This will delete ALL user data! (Administrator only, requires confirmation)
 
 ### ⚡ Automatic Features
 
@@ -108,7 +107,6 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
 
 - **`/backup export`** - Export database backup (Administrator only; sent to backup channel if `BACKUP_DATABASE_CHANNEL_ID` is set, else DM)
 - **`/backup import <file>`** - Import database backup from JSON file (Administrator only)
-- **`/reset database`** - Reset the entire database - WARNING: This will delete ALL user data! (Administrator only, requires confirmation)
 
 ### 🌐 Web Dashboard
 
@@ -255,7 +253,7 @@ npm run deploy
 ```
 [Deploy] Starting to refresh X application (/) commands...
 [Deploy] ✓ Successfully reloaded X application (/) commands.
-[Deploy] Registered commands: daily, profile, status, leaderboard, gamble, backup, reset
+[Deploy] Registered commands: daily, profile, status, leaderboard, gamble, backup
 ```
 
 **Note:** User commands (`/daily`, `/profile`, `/status`, `/leaderboard`, `/gamble`) are blocked for regular users. Only administrators can use them for backend management. Regular users should use buttons in dedicated channels instead.
@@ -305,7 +303,9 @@ Bot is ready! Use "npm run deploy" to register slash commands.
 
 ### Using Docker Compose (Recommended)
 
-Docker Compose simplifies deployment by managing both MongoDB and the bot application.
+When running with the shared dev setup, **MongoDB is provided by honor-points-service** — run that stack first, then run this app. The bot uses the external network `honor-points-service_honor-points-network` and connects to `mongodb://mongodb:27017/honorbot`. On the host, the dashboard is exposed on port **3012** (map `3012:3000`).
+
+Optional env for logging and backup: `BOTS_LOGGER_URL`, `BOTS_LOGGER_API_KEY`, `HONOR_POINTS_API_URL`, `HONOR_POINTS_API_KEY`. After a database restore, call `POST /api/leaderboard/refresh` (with dashboard auth) to update the Discord leaderboard message.
 
 #### Step 1: Update Environment Variables
 
@@ -589,7 +589,7 @@ honorbot-pbz/
 │   │   ├── gamble.ts          # Coin flip gambling command (blocked for users)
 │   │   ├── leaderboard.ts     # Leaderboard command (blocked for users)
 │   │   ├── profile.ts          # User profile command (blocked for users)
-│   │   ├── reset.ts           # Admin database reset command
+│   │   # reset command removed to prevent accidental data loss
 │   │   └── status.ts          # User status command (blocked for users)
 │   ├── dashboard/             # Web admin panel
 │   │   ├── public/            # Static files (HTML, CSS, JS)

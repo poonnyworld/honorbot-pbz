@@ -13,7 +13,9 @@
     "clear-commands": "ts-node src/clear-commands.ts",
     "migrate:monthly": "ts-node migrate-monthly-snapshot.ts",
     "restore:full-march4": "ts-node scripts/restore-full-march4.ts",
-    "restore:docker": "docker compose run --rm -v $(pwd):/app -w /app -e MONGO_URI=mongodb://mongodb:27017/honorbot app npx ts-node scripts/restore-full-march4.ts"
+    "restore:docker": "docker compose run --rm -v $(pwd):/app -w /app -e MONGO_URI=mongodb://mongodb:27017/honorbot app npx ts-node scripts/restore-full-march4.ts",
+    "restore:4pm": "ts-node scripts/restore-from-json-backup.ts database-backups/incoming/phantom_backup_2026-03-04.json",
+    "restore:4pm:docker": "docker compose run --rm -v $(pwd):/app -w /app -e MONGO_URI=mongodb://mongodb:27017/honorbot app npx ts-node scripts/restore-from-json-backup.ts database-backups/incoming/phantom_backup_2026-03-04.json"
   },
   "keywords": [
     "discord",

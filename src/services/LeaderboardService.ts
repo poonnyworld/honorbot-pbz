@@ -691,6 +691,11 @@ export class LeaderboardService {
         .sort((a, b) => (b.honorPoints ?? 0) - (a.honorPoints ?? 0))
         .slice(0, 10);
 
+      // #region agent log
+      const top3FromDb = allTimeTop.slice(0, 3).map((u) => ({ userId: u.userId, honorPoints: u.honorPoints }));
+      (()=>{const p={sessionId:'62e255',hypothesisId:'H5',location:'LeaderboardService.generateEmbeds',message:'leaderboard DB read (top3)',data:{top3FromDb,totalUsers:allUsers.length},timestamp:Date.now()};fetch('http://localhost:7830/ingest/3f16d42f-49f9-4cb1-8d99-27cc6072eb7c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'62e255'},body:JSON.stringify(p)}).catch(()=>{});try{require('fs').appendFileSync(require('path').resolve(process.cwd(),'debug-62e255.log'),JSON.stringify(p)+'\n');}catch(_){}})();
+      // #endregion
+
       const allTimeDesc = allTimeTop.length === 0
         ? '*No warriors have earned honor points yet. Be the first!*'
         : allTimeTop

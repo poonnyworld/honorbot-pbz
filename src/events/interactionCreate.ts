@@ -15,6 +15,7 @@ import { User } from '../models/User';
 import mongoose from 'mongoose';
 import { MONGODB_CONNECTED } from '../utils/connectDB';
 import { serviceRegistry } from '../services/ServiceRegistry';
+import { sendBotsLog } from '../utils/botsLogger';
 
 export const name = Events.InteractionCreate;
 
@@ -224,6 +225,13 @@ async function handleDailyButton(interaction: ButtonInteraction): Promise<void> 
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
+      sendBotsLog({
+        botId: 'honorbot-pbz',
+        category: 'daily',
+        action: 'daily_already_claimed',
+        userId: interaction.user.id,
+        username: interaction.user.username,
+      });
       return;
     }
 
@@ -259,6 +267,14 @@ async function handleDailyButton(interaction: ButtonInteraction): Promise<void> 
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
+    sendBotsLog({
+      botId: 'honorbot-pbz',
+      category: 'daily',
+      action: 'daily_claim',
+      userId: interaction.user.id,
+      username: interaction.user.username,
+      details: { pointsGained, totalPoints: user.honorPoints },
+    });
   } catch (error) {
     console.error('Error processing daily button:', error);
 
@@ -276,7 +292,13 @@ async function handleDailyButton(interaction: ButtonInteraction): Promise<void> 
  * Handle the profile button interaction
  */
 async function handleProfileButton(interaction: ButtonInteraction): Promise<void> {
-  // Create a fake ChatInputCommandInteraction-like object
+  sendBotsLog({
+    botId: 'honorbot-pbz',
+    category: 'hall',
+    action: 'profile_button',
+    userId: interaction.user.id,
+    username: interaction.user.username,
+  });
   const fakeInteraction = {
     ...interaction,
     isChatInputCommand: () => true,
@@ -290,14 +312,34 @@ async function handleProfileButton(interaction: ButtonInteraction): Promise<void
     editReply: interaction.editReply.bind(interaction),
     reply: interaction.reply.bind(interaction),
   } as any;
-  
-  await profileCommand.execute(fakeInteraction);
+  try {
+    await profileCommand.execute(fakeInteraction);
+  } catch (err) {
+    console.error('[ProfileButton] Error:', err);
+    try {
+      if ((interaction as any).deferred) {
+        await interaction.editReply({ content: '❌ Could not load profile. Please try again later.' });
+      } else {
+        await interaction.reply({
+          content: '❌ Could not load profile. Please try again later.',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+    } catch (_) {}
+  }
 }
 
 /**
- * Handle the status button interaction
+ * Handle the status button interaction (Tasks – Check Remaining Tasks)
  */
 async function handleStatusButton(interaction: ButtonInteraction): Promise<void> {
+  sendBotsLog({
+    botId: 'honorbot-pbz',
+    category: 'tasks',
+    action: 'check_remaining_tasks',
+    userId: interaction.user.id,
+    username: interaction.user.username,
+  });
   const fakeInteraction = {
     ...interaction,
     isChatInputCommand: () => true,
@@ -341,7 +383,15 @@ async function handleGambleButton(interaction: ButtonInteraction): Promise<void>
     .setRequired(true)
     .setMaxLength(1)
     .setMinLength(1);  const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(choiceInput);
-  const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(betInput);  modal.addComponents(firstActionRow, secondActionRow);  await interaction.showModal(modal);
+  const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(betInput);  modal.addComponents(firstActionRow, secondActionRow);
+  sendBotsLog({
+    botId: 'honorbot-pbz',
+    category: 'button',
+    action: 'gamble_button_open_modal',
+    userId: interaction.user.id,
+    username: interaction.user.username,
+  });
+  await interaction.showModal(modal);
 }/**
  * Handle the coin flip modal submission
  */
@@ -512,6 +562,22 @@ async function handleGambleModal(interaction: any): Promise<void> {
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
+
+    sendBotsLog({
+      botId: 'honorbot-pbz',
+      category: 'gamble',
+      action: 'coin_flip',
+      userId: interaction.user.id,
+      username: interaction.user.username,
+      details: {
+        choice: userChoice,
+        result: coinResult,
+        won: didWin,
+        betAmount,
+        newBalance: user.honorPoints,
+        dailyPlays: user.dailyLuckyDrawCount,
+      },
+    });
 
     console.log(
       `[Coin Flip] User ${user.username} (${interaction.user.id}) bet ${betAmount} points. ` +

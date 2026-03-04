@@ -1,3 +1,5 @@
+import { appendFileSync } from 'fs';
+import { resolve } from 'path';
 import { User, IUser } from '../models/User';
 
 export class BackupService {
@@ -60,6 +62,11 @@ export class BackupService {
       }
 
       console.log(`[BackupService] Processing ${userData.length} user records...`);
+
+      // #region agent log
+      const sampleTop = (userData as any[]).slice(0, 5).map((u: any) => ({ userId: u.userId, honorPoints: u.honorPoints }));
+      (()=>{const p={sessionId:'62e255',hypothesisId:'H2',location:'BackupService.importDatabase:start',message:'importDatabase called',data:{recordCount:userData.length,sampleTop},timestamp:Date.now()};fetch('http://localhost:7830/ingest/3f16d42f-49f9-4cb1-8d99-27cc6072eb7c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'62e255'},body:JSON.stringify(p)}).catch(()=>{});try{appendFileSync(resolve(process.cwd(),'debug-62e255.log'),JSON.stringify(p)+'\n');}catch(_){}})();
+      // #endregion
 
       let imported = 0;
       let updated = 0;
@@ -189,6 +196,10 @@ export class BackupService {
       }).filter((op) => op !== null) as any[];
 
       console.log(`[BackupService] Executing ${operations.length} bulk operations...`);
+
+      // #region agent log
+      (()=>{const p={sessionId:'62e255',hypothesisId:'H2',location:'BackupService.importDatabase:beforeBulkWrite',message:'importDatabase about to bulkWrite',data:{operationsCount:operations.length},timestamp:Date.now()};fetch('http://localhost:7830/ingest/3f16d42f-49f9-4cb1-8d99-27cc6072eb7c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'62e255'},body:JSON.stringify(p)}).catch(()=>{});try{appendFileSync(resolve(process.cwd(),'debug-62e255.log'),JSON.stringify(p)+'\n');}catch(_){}})();
+      // #endregion
 
       // Execute bulk write
       if (operations.length > 0) {

@@ -34,6 +34,14 @@ function normalizeMongoExtendedJson(obj: any): any {
 async function main() {
   const backupPath = process.argv[2] || resolve(__dirname, '../database-backups/users_export.json');
   console.log('Using backup file:', backupPath);
+  // #region agent log
+  try {
+    const path = require('path');
+    const logPath = path.resolve(process.cwd(), 'debug-62e255.log');
+    const line = JSON.stringify({ sessionId: '62e255', hypothesisId: 'H2', location: 'restore-from-json-backup.ts:main', message: 'restore script started', data: { backupPath }, timestamp: Date.now() }) + '\n';
+    require('fs').appendFileSync(logPath, line);
+  } catch (_) {}
+  // #endregion
 
   const raw = readFileSync(backupPath, 'utf-8').trim();
   let users: any[];

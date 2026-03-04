@@ -1,10 +1,4 @@
-import {
-  SlashCommandBuilder,
-  ChatInputCommandInteraction,
-  AttachmentBuilder,
-  PermissionFlagsBits,
-  TextChannel,
-} from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits } from 'discord.js';
 import { appendFileSync, mkdirSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { BackupService } from '../services/BackupService';
@@ -69,62 +63,37 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (subcommand === 'export') {
       console.log(`[Backup] Export requested by ${interaction.user.tag} (${interaction.user.id})`);
 
-      // Export database (always reads latest from MongoDB — same source as leaderboard)
-      const { jsonData, count } = await BackupService.exportDatabase();
-
-      // Create file buffer
-      const buffer = Buffer.from(jsonData, 'utf-8');
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-      const filename = `phantom_backup_${timestamp}.json`;
-
-      // Create attachment
-      const attachment = new AttachmentBuilder(buffer, { name: filename });
-      const backupChannelId = (process.env.BACKUP_DATABASE_CHANNEL_ID ?? '').trim();
-
-      if (!backupChannelId || !/^\d{17,19}$/.test(backupChannelId)) {
-        console.log('[Backup] BACKUP_DATABASE_CHANNEL_ID not set or invalid, using DM');
-      }
-
-      // ส่งลงช่อง backup ก่อน (ถ้ามี) ไม่ส่ง DM
-      if (backupChannelId && /^\d{17,19}$/.test(backupChannelId)) {
+      const apiUrl = (process.env.HONOR_POINTS_API_URL ?? '').replace(/\/$/, '');
+      const apiKey = process.env.HONOR_POINTS_API_KEY ?? '';
+      if (apiUrl && apiKey) {
         try {
-          const channel = await interaction.client.channels.fetch(backupChannelId);
-          if (channel?.isTextBased()) {
-            await (channel as TextChannel).send({
-              content: `📦 **Database Backup** (requested by ${interaction.user.tag})\n\`${filename}\`\n📊 **ข้อมูลล่าสุดจาก DB ตอน export:** ${count} users\n*Keep this file secure!*`,
-              files: [attachment],
-            });
+          const res = await fetch(`${apiUrl}/api/backup/export`, {
+            method: 'POST',
+            headers: { 'X-API-Key': apiKey },
+          });
+          const data = (await res.json().catch(() => ({}))) as { success?: boolean; count?: number; error?: string };
+          if (res.ok && data.success) {
             await interaction.editReply({
-              content: `✅ ส่ง backup ไปที่ <#${backupChannelId}> แล้ว (${count} users)`,
+              content: `✅ Backup export ส่งให้ **Honor Points Service** ส่งไปช่อง backup แล้ว (${data.count ?? '?'} users)`,
             });
-            console.log('[Backup] Export sent to channel', backupChannelId, 'by', interaction.user.tag);
             return;
           }
-          console.warn('[Backup] Channel', backupChannelId, 'is not text channel');
-        } catch (channelError) {
-          const err = channelError instanceof Error ? channelError.message : String(channelError);
-          console.warn('[Backup] Failed to send to backup channel, falling back to DM. Error:', err);
+          await interaction.editReply({
+            content: `❌ Honor Points Service ตอบกลับไม่สำเร็จ: ${data.error ?? res.statusText}`,
+          });
+          return;
+        } catch (err) {
+          console.error('[Backup] Honor Points Service request failed:', err);
+          await interaction.editReply({
+            content: `❌ เรียก Honor Points Service ไม่ได้ (ตรวจสอบ HONOR_POINTS_API_URL และให้ service รันอยู่)`,
+          });
+          return;
         }
       }
 
-      // Fallback: try DM, then ephemeral reply
-      try {
-        await interaction.user.send({
-          content: `📦 **Database Backup**\n\`${filename}\`\n📊 ข้อมูลล่าสุดจาก DB ตอน export: ${count} users\n\nYour database backup file is attached below. Keep this file secure!`,
-          files: [attachment],
-        });
-        await interaction.editReply({
-          content: `✅ Database backup exported successfully! (${count} users) Check your DMs for the file.`,
-        });
-      } catch (dmError) {
-        console.warn('[Backup] Failed to send DM, using ephemeral reply instead:', dmError);
-        await interaction.editReply({
-          content: `✅ Database backup exported successfully! (${count} users)`,
-          files: [attachment],
-        });
-      }
-
-      console.log(`[Backup] Export completed successfully for ${interaction.user.tag}`);
+      await interaction.editReply({
+        content: '❌ ตั้งค่า `HONOR_POINTS_API_URL` และ `HONOR_POINTS_API_KEY` ใน .env เพื่อให้ backup export ทำงาน (จัดการโดย Honor Points Service)',
+      });
     } else if (subcommand === 'import') {
       const attachment = interaction.options.getAttachment('file');
 
@@ -154,6 +123,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       console.log(`[Backup] Import requested by ${interaction.user.tag} (${interaction.user.id})`);
       console.log(`[Backup] File: ${attachment.name}, Size: ${attachment.size} bytes`);
 
+      // #region agent log
+      (()=>{const p={sessionId:'62e255',hypothesisId:'H1',location:'backup.ts:import-requested',message:'Discord backup import requested',data:{userId:interaction.user.id,userTag:interaction.user.tag,filename:attachment.name??'unknown',size:attachment.size},timestamp:Date.now()};fetch('http://localhost:7830/ingest/3f16d42f-49f9-4cb1-8d99-27cc6072eb7c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'62e255'},body:JSON.stringify(p)}).catch(()=>{});try{appendFileSync(resolve(process.cwd(),'debug-62e255.log'),JSON.stringify(p)+'\n');}catch(_){}});
+      // #endregion
+
       // Fetch file content
       try {
         const response = await fetch(attachment.url);
@@ -165,6 +138,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
         // Import database
         const result = await BackupService.importDatabase(jsonText);
+
+        // #region agent log
+        (()=>{const p={sessionId:'62e255',hypothesisId:'H1',location:'backup.ts:import-completed',message:'Discord backup import completed',data:{imported:result.imported,updated:result.updated,errors:result.errors},timestamp:Date.now()};fetch('http://localhost:7830/ingest/3f16d42f-49f9-4cb1-8d99-27cc6072eb7c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'62e255'},body:JSON.stringify(p)}).catch(()=>{});try{appendFileSync(resolve(process.cwd(),'debug-62e255.log'),JSON.stringify(p)+'\n');}catch(_){}});
+        // #endregion
 
         writeImportAuditLog({
           timestamp: new Date().toISOString(),

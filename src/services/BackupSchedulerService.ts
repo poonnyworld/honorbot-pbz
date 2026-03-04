@@ -24,7 +24,9 @@ export class BackupSchedulerService {
       { timezone: 'Asia/Bangkok' }
     );
 
-    console.log('[BackupScheduler] Started. Backup every hour (Asia/Bangkok) → channel', channelId);
+    const mongoUri = process.env.MONGO_URI ?? '';
+    const mongoHint = mongoUri ? mongoUri.replace(/\/\/[^@]+@/, '//***@') : '(not set)';
+    console.log('[BackupScheduler] Started. Backup every hour (Asia/Bangkok) → channel', channelId, '| MONGO_URI:', mongoHint);
   }
 
   public stop(): void {
@@ -41,7 +43,8 @@ export class BackupSchedulerService {
     const client = this.client;
     if (!client || !channelId) return;
 
-    console.log('[BackupScheduler] ⏰ Running scheduled database backup...');
+    const mongoHint = (process.env.MONGO_URI ?? '').replace(/\/\/[^@]+@/, '//***@') || '(not set)';
+    console.log('[BackupScheduler] ⏰ Running scheduled database backup... MONGO_URI:', mongoHint);
     BackupService.exportDatabase()
       .then(({ jsonData, count }) => {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
