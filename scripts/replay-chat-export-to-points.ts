@@ -25,7 +25,7 @@ import { User } from '../src/models/User';
 
 dotenv.config({ path: resolve(__dirname, '../.env') });
 
-const MAX_MESSAGES_PER_DAY = 5;
+let MAX_MESSAGES_PER_DAY = 5;
 // Default 2 (legacy); override with --points-per-message=1 for recovery
 let POINTS_PER_MESSAGE = 2;
 
@@ -62,12 +62,13 @@ function toDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function parseArgs(): { filePath: string; afterDate: Date | null; baseDate: string | null; pointsPerMessage: number } {
+function parseArgs(): { filePath: string; afterDate: Date | null; baseDate: string | null; pointsPerMessage: number; maxMessagesPerDay: number } {
   const args = process.argv.slice(2);
   let filePath = '';
   let afterDate: Date | null = null;
   let baseDate: string | null = null;
   let pointsPerMessage = 2;
+  let maxMessagesPerDay = 5;
   for (const arg of args) {
     if (arg.startsWith('--after-date=')) {
       const val = arg.slice('--after-date='.length).trim();
@@ -81,18 +82,22 @@ function parseArgs(): { filePath: string; afterDate: Date | null; baseDate: stri
     } else if (arg.startsWith('--points-per-message=')) {
       const val = parseInt(arg.slice('--points-per-message='.length).trim(), 10);
       if (Number.isInteger(val) && val >= 1 && val <= 10) pointsPerMessage = val;
+    } else if (arg.startsWith('--max-messages-per-day=')) {
+      const val = parseInt(arg.slice('--max-messages-per-day='.length).trim(), 10);
+      if (Number.isInteger(val) && val >= 1 && val <= 100) maxMessagesPerDay = val;
     } else if (!filePath) {
       filePath = arg;
     }
   }
-  return { filePath, afterDate, baseDate, pointsPerMessage };
+  return { filePath, afterDate, baseDate, pointsPerMessage, maxMessagesPerDay };
 }
 
 async function main() {
-  const { filePath, afterDate, baseDate, pointsPerMessage } = parseArgs();
+  const { filePath, afterDate, baseDate, pointsPerMessage, maxMessagesPerDay } = parseArgs();
   POINTS_PER_MESSAGE = pointsPerMessage;
+  MAX_MESSAGES_PER_DAY = maxMessagesPerDay;
   if (!filePath) {
-    console.error('Usage: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx|.csv> [--after-date=ISO_DATE] [--base-date=YYYY-MM-DD] [--points-per-message=1]');
+    console.error('Usage: npx ts-node scripts/replay-chat-export-to-points.ts <path-to-export.xlsx|.csv> [--after-date=ISO_DATE] [--base-date=YYYY-MM-DD] [--points-per-message=1] [--max-messages-per-day=1]');
     process.exit(1);
   }
   if (afterDate) {

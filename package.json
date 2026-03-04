@@ -11,7 +11,9 @@
     "deploy": "ts-node src/deploy-commands.ts",
     "deploy:prod": "node dist/deploy-commands.js",
     "clear-commands": "ts-node src/clear-commands.ts",
-    "migrate:monthly": "ts-node migrate-monthly-snapshot.ts"
+    "migrate:monthly": "ts-node migrate-monthly-snapshot.ts",
+    "restore:full-march4": "ts-node scripts/restore-full-march4.ts",
+    "restore:docker": "docker compose run --rm -v $(pwd):/app -w /app -e MONGO_URI=mongodb://mongodb:27017/honorbot app npx ts-node scripts/restore-full-march4.ts"
   },
   "keywords": [
     "discord",

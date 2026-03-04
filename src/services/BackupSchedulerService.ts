@@ -15,16 +15,16 @@ export class BackupSchedulerService {
       return;
     }
 
-    // เที่ยงคืนและเที่ยงวันเวลาไทย (cron เดียว ประหยัดแรม)
+    // ทุกชั่วโมงเวลาไทย (นาทีที่ 0)
     this.cronJob = cron.schedule(
-      '0 0,12 * * *',
+      '0 * * * *',
       () => {
         this.runScheduledBackup();
       },
       { timezone: 'Asia/Bangkok' }
     );
 
-    console.log('[BackupScheduler] Started. Backup 00:00 & 12:00 (Asia/Bangkok) → channel', channelId);
+    console.log('[BackupScheduler] Started. Backup every hour (Asia/Bangkok) → channel', channelId);
   }
 
   public stop(): void {
@@ -59,7 +59,7 @@ export class BackupSchedulerService {
           ? '\n⚠️ **Backup is empty (0 users).** Bot may be connected to a different/empty MongoDB. Check `MONGO_URI` on this server.'
           : '';
         return (ch as TextChannel).send({
-          content: `📦 **Scheduled Database Backup**\n\`${filename}\`\n*00:00 & 12:00 น. (ไทย)*\n📊 **ข้อมูลล่าสุดจาก DB ตอน export:** ${count} users${warning}`,
+          content: `📦 **Scheduled Database Backup**\n\`${filename}\`\n*ทุกชั่วโมง (เวลาไทย)*\n📊 **ข้อมูลล่าสุดจาก DB ตอน export:** ${count} users${warning}`,
           files: [attachment],
         });
       })

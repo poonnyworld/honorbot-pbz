@@ -5,8 +5,25 @@ import {
   PermissionFlagsBits,
   TextChannel,
 } from 'discord.js';
+import { appendFileSync, mkdirSync, existsSync } from 'fs';
+import { resolve } from 'path';
 import { BackupService } from '../services/BackupService';
 import { serviceRegistry } from '../services/ServiceRegistry';
+
+const AUDIT_LOG_DIR = resolve(process.cwd(), 'database-backups');
+const IMPORT_AUDIT_LOG = resolve(AUDIT_LOG_DIR, 'import-audit.log');
+
+function writeImportAuditLog(entry: { timestamp: string; userId: string; username: string; filename: string; imported: number; updated: number; errors: number }): void {
+  try {
+    if (!existsSync(AUDIT_LOG_DIR)) {
+      mkdirSync(AUDIT_LOG_DIR, { recursive: true });
+    }
+    const line = `${entry.timestamp}\t${entry.userId}\t${entry.username}\t${entry.filename}\timported=${entry.imported}\tupdated=${entry.updated}\terrors=${entry.errors}\n`;
+    appendFileSync(IMPORT_AUDIT_LOG, line);
+  } catch (e) {
+    console.error('[Backup] Failed to write import audit log:', e);
+  }
+}
 
 export const data = new SlashCommandBuilder()
   .setName('backup')
@@ -148,6 +165,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
         // Import database
         const result = await BackupService.importDatabase(jsonText);
+
+        writeImportAuditLog({
+          timestamp: new Date().toISOString(),
+          userId: interaction.user.id,
+          username: interaction.user.tag,
+          filename: attachment.name ?? 'unknown.json',
+          imported: result.imported,
+          updated: result.updated,
+          errors: result.errors,
+        });
 
         await interaction.editReply({
           content: `✅ Database import completed!\n\n` +
