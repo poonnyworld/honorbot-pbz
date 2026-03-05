@@ -680,6 +680,33 @@ export class LeaderboardService {
   }
 
   /**
+   * Resolve display name for leaderboard: DB username → Discord fetch (and backfill DB) → User_<last6>.
+   */
+  private async resolveDisplayName(user: { userId: string; username?: string | null }): Promise<string> {
+    const rawName = (user as any).username;
+    if (typeof rawName === 'string' && rawName.trim()) {
+      return rawName.replace(/\*\*/g, '').trim();
+    }
+    if (this.client) {
+      try {
+        const discordUser = await this.client.users.fetch(user.userId).catch(() => null);
+        if (discordUser) {
+          const name = (discordUser.globalName ?? discordUser.username ?? '').trim() || discordUser.username;
+          if (name) {
+            await User.findOneAndUpdate(
+              { userId: user.userId },
+              { $set: { username: name } },
+              { new: true }
+            ).exec().catch(() => {});
+            return name.replace(/\*\*/g, '').trim();
+          }
+        }
+      } catch (_) {}
+    }
+    return `User_${String(user.userId).slice(-6)}`;
+  }
+
+  /**
    * Generate leaderboard embeds: all-time + monthly. honorPoints is never modified.
    */
   private async generateEmbeds(): Promise<EmbedBuilder[]> {
@@ -698,14 +725,15 @@ export class LeaderboardService {
 
       const allTimeDesc = allTimeTop.length === 0
         ? '*No warriors have earned honor points yet. Be the first!*'
-        : allTimeTop
-            .map((user, i) => {
+        : (await Promise.all(
+            allTimeTop.map(async (user, i) => {
               const rank = i + 1;
               const pts = user.honorPoints ?? 0;
               const emoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-              return `${emoji} ${rank}. <@${user.userId}> - **${pts.toLocaleString()}** Honor`;
+              const displayName = await this.resolveDisplayName(user);
+              return `${emoji} ${rank}. **${displayName}** (<@${user.userId}>) - **${pts.toLocaleString()}** Honor`;
             })
-            .join('\n');
+          )).join('\n');
 
       const allTimeEmbed = new EmbedBuilder()
         .setColor(0x8b0000)
@@ -730,40 +758,12 @@ export class LeaderboardService {
       const monthlyDesc =
         monthlyTop.length === 0
           ? `*No points earned this month yet (${monthLabel})*`
-          : monthlyTop
-              .map((user, i) => {
+          : (await Promise.all(
+              monthlyTop.map(async (user, i) => {
                 const rank = i + 1;
                 const pts = user.monthlyPoints;
                 const emoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-                return `${emoji} ${rank}. <@${user.userId}> - **${pts.toLocaleString()}** Honor`;
+                const displayName = await this.resolveDisplayName(user);
+                return `${emoji} ${rank}. **${displayName}** (<@${user.userId}>) - **${pts.toLocaleString()}** Honor`;
               })
-              .join('\n');
-
-      const monthlyEmbed = new EmbedBuilder()
-        .setColor(0x5a3d2b)
-        .setTitle(`📜 Jianghu Rankings – (${monthLabel}) (Top 10)`)
-        .setDescription(monthlyDesc)
-        .setFooter({
-          text: `Last Updated: ${now.toLocaleString('en-US', {
-            timeZone: 'Asia/Bangkok',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}`,
-        })
-        .setTimestamp();
-
-      return [allTimeEmbed, monthlyEmbed];
-    } catch (error) {
-      console.error('[LeaderboardService] Error generating embeds:', error);
-      return [
-        new EmbedBuilder()
-          .setColor(0xff0000)
-          .setTitle('❌ Error Loading Leaderboard')
-          .setDescription('An error occurred while loading the leaderboard. Please try again later.')
-          .setTimestamp(),
-      ];
-    }
-  }
-}
+            )).join('\n');

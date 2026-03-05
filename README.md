@@ -88,7 +88,7 @@ The bot uses **persistent buttons** in dedicated channels as the primary interac
   - Format: `<t:timestamp:T> Username earned +X points (Current: Y/5) ⏳ (ends <t:timestamp:T>)` or `✅ Ready`
   - Auto-updates as users earn points
 - **Hall of Fame (Real-time Leaderboard)** - Auto-updates every 24 hours (at midnight UTC) in Hall of Fame channel
-  - Shows top 10 users with rankings
+  - Shows top 10 users with rankings; display names come from DB or are resolved from Discord (users who restrict profile visibility show as `User_xxxxxx`)
   - Medal emojis for top 3 (🥇🥈🥉)
   - No button needed - just view the channel
 - **Daily Reward System** - Claim daily honor points with weighted random distribution
@@ -554,9 +554,11 @@ See [`BUTTON_SETUP.md`](./BUTTON_SETUP.md) for detailed setup instructions.
 
 #### Exporting Database
 
-1. In Discord, use the `/backup export` command (Administrator only)
-2. If `BACKUP_DATABASE_CHANNEL_ID` is set, the bot sends the JSON file to that channel; otherwise it sends via DM
-3. Save backup files securely - they contain all user data
+1. In Discord, open a channel where **Honor Keeper APP** (honorbot-pbz) can post. Type `/backup` → choose subcommand **export** (Administrator only).
+2. The bot calls the Honor Points Service API to generate the backup and sends the JSON to the backup channel (or DM if `BACKUP_DATABASE_CHANNEL_ID` is not set).
+3. Save backup files securely - they contain all user data.
+
+**ถ้าไม่เห็นคำสั่ง /backup:** ต้องลงทะเบียน slash commands — บนเครื่องที่รันบอท: `npm run deploy` หรือใน Docker: `docker exec honorbot-app npm run deploy` จากนั้นรอสักครู่แล้วลองพิมพ์ `/backup` ใน Discord อีกครั้ง
 
 **Scheduled backup:** The bot sends a full database backup to `BACKUP_DATABASE_CHANNEL_ID` every 12 hours (00:00 and 12:00 Bangkok time) if the channel is set.
 
